@@ -1,0 +1,46 @@
+# API Endpoints
+
+- `GET /health`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/users`
+- `POST /api/v1/users`
+- `GET /api/v1/farmers`
+- `POST /api/v1/farmers`
+- `POST /api/v1/farmers/{id}/review`
+- `GET /api/v1/inventory-items`
+- `POST /api/v1/inventory-items`
+- `GET /api/v1/warehouses`
+- `POST /api/v1/warehouses`
+- `GET /api/v1/stock-lots`
+- `GET /api/v1/procurement/suppliers`
+- `POST /api/v1/procurement/suppliers`
+- `POST /api/v1/procurement/purchase-orders`
+- `POST /api/v1/procurement/stock-receipts`
+- `GET /api/v1/campaigns`
+- `POST /api/v1/campaigns`
+- `POST /api/v1/campaigns/{id}/approve`
+- `POST /api/v1/campaigns/allocations`
+- `GET /api/v1/campaigns/{campaignId}/allocations`
+- `POST /api/v1/dispatch/vehicles`
+- `GET /api/v1/dispatch/vehicles`
+- `GET /api/v1/dispatch`
+- `POST /api/v1/dispatch`
+- `POST /api/v1/dispatch/{id}/confirm-loaded`
+- `POST /api/v1/dispatch/sessions`
+- `GET /api/v1/deliveries`
+- `GET /api/v1/deliveries/{id}`
+- `POST /api/v1/deliveries`
+- `POST /api/v1/deliveries/{id}/complete`
+- `POST /api/v1/proof-of-delivery`
+- `POST /api/v1/otp/send`
+- `POST /api/v1/otp/verify`
+- `GET /api/v1/fleet/locations/latest`
+- `POST /api/v1/fleet/locations`
+- `POST /api/v1/sync`
+- `GET /api/v1/compliance/exceptions`
+- `POST /api/v1/compliance/exceptions`
+- `POST /api/v1/compliance/exceptions/{id}/resolve`
+- `GET /api/v1/compliance/audit-logs`
+- `GET /api/v1/reports/summary`
+
+Run the API in Development and open `/swagger` for the generated OpenAPI UI.

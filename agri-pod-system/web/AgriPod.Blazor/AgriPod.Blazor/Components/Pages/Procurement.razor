@@ -1,0 +1,80 @@
+@page "/procurement"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Procurement</PageTitle>
+
+<section class="page-section">
+    <h1>Procurement and stock receiving</h1>
+    <p>Purchased inputs are registered by supplier, quantity, batch, quality checks, expiry, and package barcode generation.</p>
+</section>
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header"><h2>Live purchase orders</h2><button type="button" @onclick="Load">Refresh</button></div>
+        <table>
+            <thead><tr><th>PO</th><th>Supplier</th><th>Item</th><th>Quantity</th><th>Batch</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var po in _orders)
+                {
+                    <tr><td>@po.PurchaseNumber</td><td>@SupplierName(po.SupplierId)</td><td>@ItemName(po.InventoryItemId)</td><td>@po.Quantity.ToString("N0")</td><td>@po.BatchNumber</td><td><span class="state ok">Submitted</span></td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Create supplier</h2>
+        <div class="form-stack">
+            <label>Name <input @bind="_supplier.Name" /></label>
+            <label>Phone <input @bind="_supplier.Phone" /></label>
+            <button type="button" @onclick="CreateSupplier">Create supplier</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Suppliers</h2>
+    <div class="flow-strip">
+        @foreach (var supplier in _suppliers)
+        {
+            <span>@supplier.Name</span>
+        }
+    </div>
+</section>
+
+@code {
+    private readonly List<SupplierDto> _suppliers = [];
+    private readonly List<PurchaseOrderDto> _orders = [];
+    private readonly List<InventoryItemDto> _items = [];
+    private SupplierForm _supplier = SupplierForm.Default();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _suppliers.Clear(); _orders.Clear(); _items.Clear();
+        _suppliers.AddRange(await client.GetFromJsonAsync<List<SupplierDto>>("/api/v1/procurement/suppliers") ?? []);
+        _orders.AddRange(await client.GetFromJsonAsync<List<PurchaseOrderDto>>("/api/v1/procurement/purchase-orders") ?? []);
+        _items.AddRange(await client.GetFromJsonAsync<List<InventoryItemDto>>("/api/v1/inventory-items") ?? []);
+    }
+
+    private async Task CreateSupplier()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        await client.PostAsJsonAsync("/api/v1/procurement/suppliers", new CreateSupplierRequest(_supplier.Name, _supplier.Phone));
+        _supplier = SupplierForm.Default();
+        await Load();
+    }
+
+    private string SupplierName(Guid id) => _suppliers.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
+    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
+
+    private sealed class SupplierForm
+    {
+        public string Name { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public static SupplierForm Default() => new() { Name = $"Supplier {Random.Shared.Next(100,999)}", Phone = "+23276002001" };
+    }
+}

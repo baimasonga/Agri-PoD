@@ -1,0 +1,82 @@
+@page "/fleet"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Fleet GPS</PageTitle>
+
+<section class="page-section">
+    <h1>Fleet GPS</h1>
+    <p>Vehicle location events are posted to the API and joined to dispatch and proof-of-delivery records.</p>
+</section>
+
+<section class="metric-grid">
+    <div class="metric-card"><span>Vehicles</span><strong>@_vehicles.Count</strong><p>registered distribution vehicles</p></div>
+    <div class="metric-card"><span>Dispatches</span><strong>@_dispatches.Count</strong><p>manifest-tracked trips</p></div>
+    <div class="metric-card"><span>GPS pings</span><strong>@_locations.Count</strong><p>latest vehicle positions</p></div>
+    <div class="metric-card warning"><span>Tracking active</span><strong>@_vehicles.Count(x => x.TrackingActive)</strong><p>drivers with live tracking</p></div>
+</section>
+
+<section class="map-band full">
+    <div>
+        <h2>Live route board</h2>
+        <p>Fleet pings come from <code>/api/v1/fleet/locations/latest</code> and support vehicle proximity validation for PoD.</p>
+    </div>
+    <div class="route-map" aria-label="Fleet route sketch">
+        <span class="route-point p1"></span>
+        <span class="route-point p2"></span>
+        <span class="route-point p3"></span>
+        <span class="route-line"></span>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header"><h2>Tracked vehicles</h2><button type="button" @onclick="Load">Refresh</button></div>
+    <table>
+        <thead><tr><th>Vehicle</th><th>Driver</th><th>Last latitude</th><th>Last longitude</th><th>Recorded</th><th>Status</th></tr></thead>
+        <tbody>
+            @foreach (var vehicle in _vehicles)
+            {
+                var ping = _locations.FirstOrDefault(x => x.VehicleRegistration == vehicle.Registration);
+                <tr>
+                    <td>@vehicle.Registration</td>
+                    <td>@vehicle.DriverUserId</td>
+                    <td>@(ping?.Latitude.ToString("N4") ?? "-")</td>
+                    <td>@(ping?.Longitude.ToString("N4") ?? "-")</td>
+                    <td>@(ping?.RecordedAt.ToLocalTime().ToString("HH:mm") ?? "-")</td>
+                    <td><span class="state @(vehicle.TrackingActive ? "ok" : "danger")">@(vehicle.TrackingActive ? "Tracking" : "Off")</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+<section class="panel">
+    <h2>Dispatch manifests</h2>
+    <table>
+        <thead><tr><th>Vehicle</th><th>Driver</th><th>Manifest</th><th>Status</th></tr></thead>
+        <tbody>
+            @foreach (var dispatch in _dispatches)
+            {
+                <tr><td>@dispatch.VehicleRegistration</td><td>@dispatch.DriverUserId</td><td>@dispatch.ManifestBarcode</td><td><span class="state ok">@dispatch.Status</span></td></tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+@code {
+    private readonly List<VehicleDto> _vehicles = [];
+    private readonly List<DispatchDto> _dispatches = [];
+    private readonly List<VehicleLocationRequest> _locations = [];
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _vehicles.Clear(); _dispatches.Clear(); _locations.Clear();
+        _vehicles.AddRange(await client.GetFromJsonAsync<List<VehicleDto>>("/api/v1/dispatch/vehicles") ?? []);
+        _dispatches.AddRange(await client.GetFromJsonAsync<List<DispatchDto>>("/api/v1/dispatch") ?? []);
+        _locations.AddRange(await client.GetFromJsonAsync<List<VehicleLocationRequest>>("/api/v1/fleet/locations/latest") ?? []);
+    }
+}

@@ -1,0 +1,167 @@
+@page "/farmers"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Farmers</PageTitle>
+
+<section class="page-section">
+    <h1>Farmer registration</h1>
+    <p>Field officers capture eligibility, GPS, photo evidence, value chain, and a generated farmer barcode while offline.</p>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <section class="notice">@_message</section>
+}
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header">
+            <div>
+                <h2>Live approval queue</h2>
+                <p>@_farmers.Count farmers loaded from the API.</p>
+            </div>
+            <button type="button" @onclick="LoadFarmers">Refresh</button>
+        </div>
+        <table>
+            <thead>
+                <tr><th>Farmer</th><th>District</th><th>Value chain</th><th>Evidence</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var farmer in _farmers)
+                {
+                    <tr>
+                        <td>
+                            <strong>@farmer.FullName</strong><br />
+                            <small>@farmer.BarcodeToken</small>
+                        </td>
+                        <td>@farmer.DistrictCode</td>
+                        <td>@farmer.ValueChain</td>
+                        <td>GPS + photo + QR</td>
+                        <td><span class="state @StatusClass(farmer.Status)">@farmer.Status</span></td>
+                        <td>
+                            @if (farmer.Status == "PendingReview")
+                            {
+                                <button type="button" @onclick="() => ReviewFarmer(farmer.Id, true)">Approve</button>
+                                <button class="secondary-button" type="button" @onclick="() => ReviewFarmer(farmer.Id, false)">Reject</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Register demo farmer</h2>
+        <div class="form-stack">
+            <label>Full name <input @bind="_newFarmer.FullName" /></label>
+            <label>National ID <input @bind="_newFarmer.NationalId" /></label>
+            <label>Phone <input @bind="_newFarmer.Phone" /></label>
+            <label>District <input @bind="_newFarmer.DistrictCode" /></label>
+            <label>Chiefdom <input @bind="_newFarmer.Chiefdom" /></label>
+            <label>Community <input @bind="_newFarmer.Community" /></label>
+            <label>Value chain <input @bind="_newFarmer.ValueChain" /></label>
+            <button type="button" @onclick="RegisterFarmer">Register</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Registration controls</h2>
+    <div class="check-list">
+        <span>Personal details</span>
+        <span>GPS location</span>
+        <span>Farmer photo</span>
+        <span>Value chain</span>
+        <span>Barcode token</span>
+        <span>District review</span>
+        <span>Audit log</span>
+    </div>
+</section>
+
+@code {
+    private readonly List<FarmerDto> _farmers = [];
+    private string? _message;
+    private FarmerForm _newFarmer = FarmerForm.Default();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFarmers();
+    }
+
+    private async Task LoadFarmers()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            var farmers = await client.GetFromJsonAsync<List<FarmerDto>>("/api/v1/farmers") ?? [];
+            _farmers.Clear();
+            _farmers.AddRange(farmers);
+            _message = null;
+        }
+        catch (Exception ex)
+        {
+            _message = $"Could not load farmers from API: {ex.Message}";
+        }
+    }
+
+    private async Task RegisterFarmer()
+    {
+        var request = new RegisterFarmerRequest(
+            _newFarmer.FullName,
+            _newFarmer.NationalId,
+            _newFarmer.Phone,
+            _newFarmer.DistrictCode,
+            _newFarmer.Chiefdom,
+            _newFarmer.Community,
+            _newFarmer.ValueChain,
+            8.889m,
+            -12.044m,
+            $"portal-photo://{Guid.NewGuid():N}");
+
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var response = await client.PostAsJsonAsync("/api/v1/farmers", request);
+        _message = response.IsSuccessStatusCode ? "Farmer registered and queued for district review." : $"Registration failed: {response.StatusCode}";
+        _newFarmer = FarmerForm.Default();
+        await LoadFarmers();
+    }
+
+    private async Task ReviewFarmer(Guid farmerId, bool approved)
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var response = await client.PostAsJsonAsync($"/api/v1/farmers/{farmerId}/review", new ReviewFarmerRequest(approved, approved ? "Approved in portal." : "Rejected in portal."));
+        _message = response.IsSuccessStatusCode ? "Farmer review saved." : $"Review failed: {response.StatusCode}";
+        await LoadFarmers();
+    }
+
+    private static string StatusClass(string status) => status switch
+    {
+        "Approved" => "ok",
+        "Rejected" => "danger",
+        "PendingReview" => "warn",
+        _ => "sync"
+    };
+
+    private sealed class FarmerForm
+    {
+        public string FullName { get; set; } = "";
+        public string NationalId { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string DistrictCode { get; set; } = "";
+        public string Chiefdom { get; set; } = "";
+        public string Community { get; set; } = "";
+        public string ValueChain { get; set; } = "";
+
+        public static FarmerForm Default() => new()
+        {
+            FullName = "Fatmata Sesay",
+            NationalId = $"SL-NIN-{Random.Shared.Next(10000, 99999)}",
+            Phone = "+23276000012",
+            DistrictCode = "KONO",
+            Chiefdom = "Gbense",
+            Community = "Koidu",
+            ValueChain = "Vegetable"
+        };
+    }
+}

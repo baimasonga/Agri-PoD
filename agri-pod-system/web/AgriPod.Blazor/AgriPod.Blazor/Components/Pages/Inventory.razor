@@ -1,0 +1,80 @@
+@page "/inventory"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Inventory</PageTitle>
+
+<section class="page-section">
+    <h1>Inventory</h1>
+    <p>Stock lots are backed by the live API and ready for Azure SQL online storage, SQL Server Express district replicas, and SQLite mobile reads.</p>
+</section>
+
+<section class="metric-grid">
+    <div class="metric-card"><span>Items</span><strong>@_items.Count</strong><p>registered agricultural inputs</p></div>
+    <div class="metric-card"><span>Warehouses</span><strong>@_warehouses.Count</strong><p>national and district stores</p></div>
+    <div class="metric-card"><span>Stock lots</span><strong>@_lots.Count</strong><p>batches with traceability</p></div>
+    <div class="metric-card warning"><span>Total quantity</span><strong>@_lots.Sum(x => x.Quantity).ToString("N0")</strong><p>all tracked units</p></div>
+</section>
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header"><h2>Live stock lots</h2><button type="button" @onclick="Load">Refresh</button></div>
+        <table>
+            <thead><tr><th>Lot</th><th>Warehouse</th><th>Item</th><th>Quantity</th><th>Expiry</th></tr></thead>
+            <tbody>
+                @foreach (var lot in _lots)
+                {
+                    <tr><td>@lot.LotCode</td><td>@lot.WarehouseCode</td><td>@ItemName(lot.ItemId)</td><td>@lot.Quantity.ToString("N0")</td><td>@(lot.ExpiresOn?.ToString("yyyy-MM-dd") ?? "None")</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Create item</h2>
+        <div class="form-stack">
+            <label>SKU <input @bind="_item.Sku" /></label>
+            <label>Name <input @bind="_item.Name" /></label>
+            <label>Category <input @bind="_item.Category" /></label>
+            <label>Unit <input @bind="_item.UnitOfMeasure" /></label>
+            <button type="button" @onclick="CreateItem">Create item</button>
+        </div>
+    </div>
+</section>
+
+@code {
+    private readonly List<InventoryItemDto> _items = [];
+    private readonly List<WarehouseDto> _warehouses = [];
+    private readonly List<StockLotDto> _lots = [];
+    private ItemForm _item = ItemForm.Default();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _items.Clear(); _warehouses.Clear(); _lots.Clear();
+        _items.AddRange(await client.GetFromJsonAsync<List<InventoryItemDto>>("/api/v1/inventory-items") ?? []);
+        _warehouses.AddRange(await client.GetFromJsonAsync<List<WarehouseDto>>("/api/v1/warehouses") ?? []);
+        _lots.AddRange(await client.GetFromJsonAsync<List<StockLotDto>>("/api/v1/stock-lots") ?? []);
+    }
+
+    private async Task CreateItem()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        await client.PostAsJsonAsync("/api/v1/inventory-items", new CreateInventoryItemRequest(_item.Sku, _item.Name, _item.Category, _item.UnitOfMeasure));
+        _item = ItemForm.Default();
+        await Load();
+    }
+
+    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
+
+    private sealed class ItemForm
+    {
+        public string Sku { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string UnitOfMeasure { get; set; } = "";
+        public static ItemForm Default() => new() { Sku = $"INPUT-{Random.Shared.Next(100,999)}", Name = "Demo input", Category = "Seed", UnitOfMeasure = "kg" };
+    }
+}

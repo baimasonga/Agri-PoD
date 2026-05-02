@@ -1,0 +1,156 @@
+@page "/"
+
+<PageTitle>Agri-PoD Operations</PageTitle>
+
+<section class="dashboard-head">
+    <div>
+        <h1>Agri-PoD operations</h1>
+        <p>National agriculture inventory, district distribution, vehicle tracking, and proof-of-delivery review for Sierra Leone.</p>
+    </div>
+    <div class="status-strip">
+        <span>OTP: Twilio Verify</span>
+        <span>Mobile: offline first</span>
+        <span>District node: SQL Express</span>
+    </div>
+</section>
+
+<section class="metric-grid">
+    <div class="metric-card">
+        <span>Stock on hand</span>
+        <strong>48,260</strong>
+        <p>kg seed and fertilizer tracked across 6 districts</p>
+    </div>
+    <div class="metric-card">
+        <span>Deliveries today</span>
+        <strong>184</strong>
+        <p>132 completed with GPS and OTP proof</p>
+    </div>
+    <div class="metric-card warning">
+        <span>Sync backlog</span>
+        <strong>27</strong>
+        <p>offline mutations waiting from Kono and Pujehun</p>
+    </div>
+    <div class="metric-card">
+        <span>Vehicles active</span>
+        <strong>39</strong>
+        <p>last GPS heartbeat within 15 minutes</p>
+    </div>
+</section>
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header">
+            <div>
+                <h2>Delivery control queue</h2>
+                <p>Proof packages that need supervisor attention.</p>
+            </div>
+            <button type="button">Review exceptions</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Delivery</th>
+                    <th>District</th>
+                    <th>Recipient</th>
+                    <th>Proof</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var delivery in Deliveries)
+                {
+                    <tr>
+                        <td>@delivery.Number</td>
+                        <td>@delivery.District</td>
+                        <td>@delivery.Recipient</td>
+                        <td>@delivery.Proof</td>
+                        <td><span class="state @delivery.StateClass">@delivery.State</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header compact">
+            <h2>District nodes</h2>
+        </div>
+        <div class="node-list">
+            @foreach (var node in Nodes)
+            {
+                <div class="node-row">
+                    <span class="node-dot @node.StateClass"></span>
+                    <div>
+                        <strong>@node.Name</strong>
+                        <small>@node.Detail</small>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="map-band">
+    <div>
+        <h2>Fleet movement</h2>
+        <p>Vehicle GPS pings feed the API continuously and are linked to delivery proof events.</p>
+    </div>
+    <div class="route-map" aria-label="Vehicle route sketch">
+        <span class="route-point p1"></span>
+        <span class="route-point p2"></span>
+        <span class="route-point p3"></span>
+        <span class="route-line"></span>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>End-to-end workflow</h2>
+            <p>Every stage creates auditable records and feeds the next operating queue.</p>
+        </div>
+    </div>
+    <div class="flow-strip">
+        @foreach (var step in Flow)
+        {
+            <span>@step</span>
+        }
+    </div>
+</section>
+
+@code {
+    private static readonly DeliveryRow[] Deliveries =
+    [
+        new("POD-SL-2026-0018", "Bombali", "Makeni Farmers Union", "OTP + face + GPS", "Ready", "ok"),
+        new("POD-SL-2026-0021", "Bo", "Tikonko Coop", "QR + GPS", "Needs OTP", "warn"),
+        new("POD-SL-2026-0024", "Kono", "Gbense Stores", "Offline packet", "Syncing", "sync"),
+        new("POD-SL-2026-0026", "Pujehun", "Kpaka Chiefdom", "Face pending", "Exception", "danger")
+    ];
+
+    private static readonly NodeRow[] Nodes =
+    [
+        new("Western Area", "online, 4 sec latency", "ok"),
+        new("Bombali", "online, SQL Express relay healthy", "ok"),
+        new("Kono", "offline, 18 queued changes", "warn"),
+        new("Pujehun", "offline, 9 queued changes", "danger")
+    ];
+
+    private static readonly string[] Flow =
+    [
+        "Farmer registration",
+        "Procurement",
+        "Stock receiving",
+        "Campaign planning",
+        "Allocation",
+        "Vehicle dispatch",
+        "GPS tracking",
+        "PoD",
+        "Offline sync",
+        "Reconciliation",
+        "Reports",
+        "Audit"
+    ];
+
+    private sealed record DeliveryRow(string Number, string District, string Recipient, string Proof, string State, string StateClass);
+    private sealed record NodeRow(string Name, string Detail, string StateClass);
+}

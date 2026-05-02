@@ -1,0 +1,105 @@
+@page "/users"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Users</PageTitle>
+
+<section class="page-section">
+    <h1>User management</h1>
+    <p>Administrators create users, assign roles, and restrict access by operational responsibility and district.</p>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <section class="notice">@_message</section>
+}
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header">
+            <div>
+                <h2>Live role directory</h2>
+                <p>@_users.Count users loaded from the API.</p>
+            </div>
+            <button type="button" @onclick="LoadUsers">Refresh</button>
+        </div>
+        <table>
+            <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Role</th><th>District</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var user in _users)
+                {
+                    <tr>
+                        <td>@user.FullName</td>
+                        <td>@user.Email</td>
+                        <td>@user.Phone</td>
+                        <td>@user.Role</td>
+                        <td>@user.DistrictCode</td>
+                        <td><span class="state @(user.IsActive ? "ok" : "danger")">@(user.IsActive ? "Active" : "Inactive")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Create demo user</h2>
+        <div class="form-stack">
+            <label>Full name <input @bind="_form.FullName" /></label>
+            <label>Email <input @bind="_form.Email" /></label>
+            <label>Phone <input @bind="_form.Phone" /></label>
+            <label>Role <input @bind="_form.Role" /></label>
+            <label>District <input @bind="_form.DistrictCode" /></label>
+            <button type="button" @onclick="CreateUser">Create user</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Available roles</h2>
+    <div class="flow-strip">
+        <span>SystemAdministrator</span><span>ProjectManager</span><span>ProcurementOfficer</span><span>WarehouseManager</span><span>DistrictCoordinator</span><span>FieldOfficer</span><span>Driver</span><span>MonitoringEvaluationOfficer</span><span>Auditor</span>
+    </div>
+</section>
+
+@code {
+    private readonly List<UserDto> _users = [];
+    private string? _message;
+    private UserForm _form = UserForm.Default();
+
+    protected override async Task OnInitializedAsync() => await LoadUsers();
+
+    private async Task LoadUsers()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _users.Clear();
+        _users.AddRange(await client.GetFromJsonAsync<List<UserDto>>("/api/v1/users") ?? []);
+    }
+
+    private async Task CreateUser()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var request = new CreateUserRequest(_form.FullName, _form.Email, _form.Phone, _form.Role, _form.DistrictCode);
+        var response = await client.PostAsJsonAsync("/api/v1/users", request);
+        _message = response.IsSuccessStatusCode ? "User created." : $"Create failed: {response.StatusCode}";
+        _form = UserForm.Default();
+        await LoadUsers();
+    }
+
+    private sealed class UserForm
+    {
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string DistrictCode { get; set; } = "";
+
+        public static UserForm Default() => new()
+        {
+            FullName = "Warehouse Officer",
+            Email = $"warehouse{Random.Shared.Next(100,999)}@agripod.local",
+            Phone = "+23276000020",
+            Role = "WarehouseManager",
+            DistrictCode = "BOMBALI"
+        };
+    }
+}

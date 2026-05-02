@@ -1,0 +1,6 @@
+@AgriPod.Api_HostAddress = http://localhost:5068
+
+GET {{AgriPod.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

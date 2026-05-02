@@ -1,0 +1,70 @@
+@page "/compliance"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Compliance</PageTitle>
+
+<section class="page-section">
+    <h1>Exceptions and audit</h1>
+    <p>Auditors and supervisors investigate duplicate deliveries, OTP failures, face mismatch, GPS mismatch, and missing stock.</p>
+</section>
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header"><h2>Live exception cases</h2><button type="button" @onclick="Load">Refresh</button></div>
+        <table>
+            <thead><tr><th>Case</th><th>Severity</th><th>Description</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+                @foreach (var item in _exceptions)
+                {
+                    <tr>
+                        <td>@item.CaseType</td>
+                        <td>@item.Severity</td>
+                        <td>@item.Description</td>
+                        <td><span class="state @(item.Status == "Open" ? "warn" : "ok")">@item.Status</span></td>
+                        <td>@if (item.Status == "Open") { <button type="button" @onclick="() => Resolve(item.Id)">Resolve</button> }</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Audit log</h2>
+        <div class="node-list">
+            @foreach (var log in _auditLogs.Take(8))
+            {
+                <div class="node-row"><span class="node-dot ok"></span><div><strong>@log.Action</strong><small>@log.ActorUserId - @log.EntityType</small></div></div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Security controls</h2>
+    <div class="check-list">
+        <span>JWT authentication</span><span>Role-based access</span><span>Device binding</span><span>Encrypted biometric references</span><span>Audit log for every action</span>
+    </div>
+</section>
+
+@code {
+    private readonly List<ExceptionCaseDto> _exceptions = [];
+    private readonly List<AuditLogDto> _auditLogs = [];
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _exceptions.Clear(); _auditLogs.Clear();
+        _exceptions.AddRange(await client.GetFromJsonAsync<List<ExceptionCaseDto>>("/api/v1/compliance/exceptions") ?? []);
+        _auditLogs.AddRange(await client.GetFromJsonAsync<List<AuditLogDto>>("/api/v1/compliance/audit-logs") ?? []);
+    }
+
+    private async Task Resolve(Guid id)
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        await client.PostAsJsonAsync($"/api/v1/compliance/exceptions/{id}/resolve", new ResolveExceptionCaseRequest("Resolved"));
+        await Load();
+    }
+}

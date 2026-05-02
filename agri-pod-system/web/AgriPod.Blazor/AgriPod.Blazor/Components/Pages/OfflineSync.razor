@@ -1,0 +1,34 @@
+@page "/offline-sync"
+
+<PageTitle>Offline Sync</PageTitle>
+
+<section class="page-section">
+    <h1>Offline sync</h1>
+    <p>District nodes and mobile devices submit idempotent mutation envelopes and receive server-versioned changes.</p>
+</section>
+
+<section class="panel">
+    <h2>Sync envelope</h2>
+    <pre>{
+  "deviceId": "SL-KONO-TAB-04",
+  "districtCode": "KONO",
+  "lastServerVersion": 183002,
+  "mutations": []
+}</pre>
+</section>
+
+<section class="pod-grid">
+    <div class="panel">
+        <h2>Conflict handling</h2>
+        <ol class="workflow-list">
+            <li>Duplicate delivery is rejected</li>
+            <li>Quantity over allocation creates exception</li>
+            <li>Missing OTP, face, GPS, or barcode is flagged</li>
+            <li>Accepted mutations are marked synced locally</li>
+        </ol>
+    </div>
+    <div class="panel">
+        <h2>District SQL Express relay</h2>
+        <p>District nodes use the same mutation envelope as mobile devices and keep local audit history after central acceptance.</p>
+    </div>
+</section>

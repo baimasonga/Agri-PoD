@@ -1,0 +1,57 @@
+@page "/deliveries"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Deliveries</PageTitle>
+
+<section class="page-section">
+    <h1>Deliveries and PoD</h1>
+    <p>Every delivery can carry OTP, barcode or QR scans, GPS coordinates, facial biometric reference, and offline sync metadata.</p>
+</section>
+
+<section class="panel">
+    <div class="panel-header"><h2>Live delivery queue</h2><button type="button" @onclick="Load">Refresh</button></div>
+    <table>
+        <thead><tr><th>Delivery</th><th>Recipient</th><th>Phone</th><th>District</th><th>Lines</th><th>Status</th></tr></thead>
+        <tbody>
+            @foreach (var delivery in _deliveries)
+            {
+                <tr><td>@delivery.DeliveryNumber</td><td>@delivery.RecipientName</td><td>@delivery.RecipientPhone</td><td>@delivery.DestinationDistrict</td><td>@delivery.Lines.Count</td><td><span class="state @StatusClass(delivery.Status)">@delivery.Status</span></td></tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+<section class="pod-grid">
+    <div class="panel">
+        <h2>Capture workflow</h2>
+        <ol class="workflow-list">
+            <li>Scan package QR or barcode</li>
+            <li>Verify recipient by Twilio Verify OTP</li>
+            <li>Capture GPS and face reference</li>
+            <li>Write locally first and sync later</li>
+        </ol>
+    </div>
+    <div class="panel">
+        <h2>PoD validation gates</h2>
+        <div class="check-list">
+            <span>Farmer barcode</span><span>Allocation lookup</span><span>Package barcode</span><span>Twilio OTP</span><span>Face capture</span><span>GPS boundary</span><span>Vehicle proximity</span><span>Quantity confirmation</span>
+        </div>
+    </div>
+</section>
+
+@code {
+    private readonly List<DeliveryDto> _deliveries = [];
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _deliveries.Clear();
+        _deliveries.AddRange(await client.GetFromJsonAsync<List<DeliveryDto>>("/api/v1/deliveries") ?? []);
+    }
+
+    private static string StatusClass(string status) => status == "Delivered" ? "ok" : status == "Exception" ? "danger" : "warn";
+}

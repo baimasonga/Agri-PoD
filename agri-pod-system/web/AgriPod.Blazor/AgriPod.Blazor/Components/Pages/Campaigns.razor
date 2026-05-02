@@ -1,0 +1,138 @@
+@page "/campaigns"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Campaigns</PageTitle>
+
+<section class="page-section">
+    <h1>Campaign planning</h1>
+    <p>Project managers select districts, eligible farmers, packages, vehicles, field officers, and GPS delivery boundaries.</p>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <section class="notice">@_message</section>
+}
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header"><h2>Live campaign board</h2><button type="button" @onclick="Load">Refresh</button></div>
+        <table>
+            <thead><tr><th>Campaign</th><th>District</th><th>Value chain</th><th>Window</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+                @foreach (var campaign in _campaigns)
+                {
+                    <tr>
+                        <td>@campaign.Name</td>
+                        <td>@campaign.DistrictCode</td>
+                        <td>@campaign.ValueChain</td>
+                        <td>@campaign.StartsOn.ToString("MMM dd") - @campaign.EndsOn.ToString("MMM dd")</td>
+                        <td><span class="state @StatusClass(campaign.Status)">@campaign.Status</span></td>
+                        <td>
+                            @if (campaign.Status == "PendingApproval")
+                            {
+                                <button type="button" @onclick="() => Approve(campaign.Id)">Approve</button>
+                            }
+                            <button class="secondary-button" type="button" @onclick="() => Allocate(campaign.Id)">Allocate</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Create campaign</h2>
+        <div class="form-stack">
+            <label>Name <input @bind="_form.Name" /></label>
+            <label>District <input @bind="_form.DistrictCode" /></label>
+            <label>Value chain <input @bind="_form.ValueChain" /></label>
+            <button type="button" @onclick="CreateCampaign">Create campaign</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Allocations</h2>
+    <table>
+        <thead><tr><th>Campaign</th><th>Farmer</th><th>Item</th><th>Allocated</th><th>Delivered</th></tr></thead>
+        <tbody>
+            @foreach (var row in _allocationRows)
+            {
+                <tr><td>@row.Campaign</td><td>@row.Farmer</td><td>@row.Item</td><td>@row.Allocated</td><td>@row.Delivered</td></tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+@code {
+    private readonly List<CampaignDto> _campaigns = [];
+    private readonly List<FarmerDto> _farmers = [];
+    private readonly List<InventoryItemDto> _items = [];
+    private readonly List<AllocationRow> _allocationRows = [];
+    private string? _message;
+    private CampaignForm _form = CampaignForm.Default();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _campaigns.Clear(); _farmers.Clear(); _items.Clear(); _allocationRows.Clear();
+        _campaigns.AddRange(await client.GetFromJsonAsync<List<CampaignDto>>("/api/v1/campaigns") ?? []);
+        _farmers.AddRange(await client.GetFromJsonAsync<List<FarmerDto>>("/api/v1/farmers") ?? []);
+        _items.AddRange(await client.GetFromJsonAsync<List<InventoryItemDto>>("/api/v1/inventory-items") ?? []);
+
+        foreach (var campaign in _campaigns)
+        {
+            var allocations = await client.GetFromJsonAsync<List<AllocationDto>>($"/api/v1/campaigns/{campaign.Id}/allocations") ?? [];
+            _allocationRows.AddRange(allocations.Select(x => new AllocationRow(campaign.Name, FarmerName(x.FarmerId), ItemName(x.InventoryItemId), x.AllocatedQuantity, x.DeliveredQuantity)));
+        }
+    }
+
+    private async Task CreateCampaign()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var request = new CreateCampaignRequest(_form.Name, _form.DistrictCode, _form.ValueChain, DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today.AddDays(30)), 8.889m, -12.044m, 150m);
+        await client.PostAsJsonAsync("/api/v1/campaigns", request);
+        _form = CampaignForm.Default();
+        await Load();
+    }
+
+    private async Task Approve(Guid id)
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        await client.PostAsync($"/api/v1/campaigns/{id}/approve", null);
+        await Load();
+    }
+
+    private async Task Allocate(Guid campaignId)
+    {
+        var farmer = _farmers.FirstOrDefault(x => x.Status == "Approved");
+        var item = _items.FirstOrDefault();
+        if (farmer is null || item is null)
+        {
+            _message = "Need at least one approved farmer and inventory item.";
+            return;
+        }
+
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        await client.PostAsJsonAsync("/api/v1/campaigns/allocations", new AllocateFarmerRequest(campaignId, farmer.Id, item.Id, 50m));
+        _message = $"Allocated {item.Name} to {farmer.FullName}.";
+        await Load();
+    }
+
+    private string FarmerName(Guid id) => _farmers.FirstOrDefault(x => x.Id == id)?.FullName ?? id.ToString("N")[..8];
+    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
+    private static string StatusClass(string status) => status == "Approved" ? "ok" : status == "PendingApproval" ? "warn" : "sync";
+
+    private sealed record AllocationRow(string Campaign, string Farmer, string Item, decimal Allocated, decimal Delivered);
+
+    private sealed class CampaignForm
+    {
+        public string Name { get; set; } = "";
+        public string DistrictCode { get; set; } = "";
+        public string ValueChain { get; set; } = "";
+        public static CampaignForm Default() => new() { Name = $"Campaign {Random.Shared.Next(100,999)}", DistrictCode = "BOMBALI", ValueChain = "Rice" };
+    }
+}
