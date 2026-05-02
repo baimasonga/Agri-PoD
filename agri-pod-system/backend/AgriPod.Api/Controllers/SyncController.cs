@@ -11,6 +11,7 @@ namespace AgriPod.Api.Controllers;
 public sealed class SyncController(SyncService syncService) : ControllerBase
 {
     [HttpPost]
+    [AllowAnonymous]
     [ProducesResponseType<SyncResponse>(StatusCodes.Status200OK)]
     public async Task<SyncResponse> Sync(SyncRequest request, CancellationToken cancellationToken) =>
         await syncService.ApplyAsync(request, cancellationToken);

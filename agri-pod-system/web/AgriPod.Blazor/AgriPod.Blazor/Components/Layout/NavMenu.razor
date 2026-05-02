@@ -1,4 +1,5 @@
 @inject PortalAuthState AuthState
+@inject NavigationManager Navigation
 
 <div class="brand">
     <div class="brand-mark">AP</div>
@@ -24,7 +25,7 @@
             </NavLink>
         </div>
 
-        @if (AuthState.IsInRole("SystemAdministrator", "ProjectManager", "ProcurementOfficer", "WarehouseManager", "Auditor", "MonitoringEvaluationOfficer"))
+        @if (CanAccess("SystemAdministrator", "ProjectManager", "ProcurementOfficer", "WarehouseManager", "Auditor", "MonitoringEvaluationOfficer"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="inventory">
@@ -33,7 +34,7 @@
             </div>
         }
 
-        @if (AuthState.IsInRole("SystemAdministrator", "DistrictCoordinator", "FieldOfficer", "Auditor", "MonitoringEvaluationOfficer"))
+        @if (CanAccess("SystemAdministrator", "DistrictCoordinator", "FieldOfficer", "Auditor", "MonitoringEvaluationOfficer"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="farmers">
@@ -42,7 +43,7 @@
             </div>
         }
 
-        @if (AuthState.IsInRole("SystemAdministrator", "ProcurementOfficer", "WarehouseManager", "Auditor"))
+        @if (CanAccess("SystemAdministrator", "ProcurementOfficer", "WarehouseManager", "Auditor"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="procurement">
@@ -51,7 +52,7 @@
             </div>
         }
 
-        @if (AuthState.IsInRole("SystemAdministrator", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+        @if (CanAccess("SystemAdministrator", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="campaigns">
@@ -60,7 +61,7 @@
             </div>
         }
 
-        @if (AuthState.IsInRole("SystemAdministrator", "FieldOfficer", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+        @if (CanAccess("SystemAdministrator", "FieldOfficer", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="deliveries">
@@ -69,7 +70,7 @@
             </div>
         }
 
-        @if (AuthState.IsInRole("SystemAdministrator", "Driver", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+        @if (CanAccess("SystemAdministrator", "Driver", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="fleet">
@@ -84,7 +85,7 @@
             </NavLink>
         </div>
 
-        @if (AuthState.IsInRole("SystemAdministrator", "Auditor", "DistrictCoordinator"))
+        @if (CanAccess("SystemAdministrator", "Auditor", "DistrictCoordinator"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="compliance">
@@ -93,7 +94,7 @@
             </div>
         }
 
-        @if (AuthState.IsInRole("SystemAdministrator", "ProjectManager", "MonitoringEvaluationOfficer", "Auditor"))
+        @if (CanAccess("SystemAdministrator", "ProjectManager", "MonitoringEvaluationOfficer", "Auditor"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="reports">
@@ -102,7 +103,7 @@
             </div>
         }
 
-        @if (AuthState.IsInRole("SystemAdministrator"))
+        @if (CanAccess("SystemAdministrator"))
         {
             <div class="nav-item">
                 <NavLink class="nav-link" href="users">
@@ -112,3 +113,10 @@
         }
     </nav>
 </div>
+
+@code {
+    private bool IsLoginPage => new Uri(Navigation.Uri).AbsolutePath.Equals("/login", StringComparison.OrdinalIgnoreCase);
+
+    private bool CanAccess(params string[] roles) =>
+        AuthState.IsInRole(roles) || (!AuthState.IsAuthenticated && !IsLoginPage);
+}

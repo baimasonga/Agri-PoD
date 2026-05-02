@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject PortalAuthState AuthState
 @inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
 
 <div class="page">
     <div class="sidebar">
@@ -43,6 +44,14 @@
 @code {
     private bool IsLoginPage => new Uri(Navigation.Uri).AbsolutePath.Equals("/login", StringComparison.OrdinalIgnoreCase);
 
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthState.IsAuthenticated && !IsLoginPage)
+        {
+            await SignInAsDemoAdmin();
+        }
+    }
+
     private void SignOut()
     {
         AuthState.SignOut();
@@ -50,6 +59,24 @@
     }
 
     private void SignIn() => Navigation.NavigateTo("/login");
+
+    private async Task SignInAsDemoAdmin()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new AgriPod.Shared.LoginRequest("admin@agripod.local", "demo"));
+        if (!response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var token = await response.Content.ReadFromJsonAsync<AgriPod.Shared.AuthTokenResponse>();
+        if (token is null)
+        {
+            return;
+        }
+
+        AuthState.SignIn("admin@agripod.local", token.Role, token.AccessToken, token.ExpiresAt);
+    }
 }
 
 <div id="blazor-error-ui">

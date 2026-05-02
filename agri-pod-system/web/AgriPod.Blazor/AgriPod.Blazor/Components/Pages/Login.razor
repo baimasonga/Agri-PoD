@@ -26,7 +26,7 @@
         <div class="demo-logins">
             @foreach (var account in DemoAccounts)
             {
-                <button class="secondary-button" type="button" @onclick="() => UseAccount(account.Email)">@account.Label</button>
+                <button class="secondary-button" type="button" @onclick="() => SignInAs(account.Email)">@account.Label</button>
             }
         </div>
     </div>
@@ -50,10 +50,11 @@
         new("Auditor", "audit@agripod.local")
     ];
 
-    private void UseAccount(string email)
+    private async Task SignInAs(string email)
     {
         _email = email;
         _password = "demo";
+        await SignIn();
     }
 
     private async Task SignIn()

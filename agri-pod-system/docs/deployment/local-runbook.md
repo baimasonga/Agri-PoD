@@ -9,6 +9,22 @@ Development uses SQLite so the app can run on machines without SQL Server LocalD
 - Portal: `http://localhost:5253`
 - Local database file: `agri-pod-system/agri-pod-dev.db`
 
+## Demo Login Accounts
+
+Use password `demo` for all seeded role demos.
+
+- `admin@agripod.local` - SystemAdministrator
+- `manager@agripod.local` - ProjectManager
+- `procurement@agripod.local` - ProcurementOfficer
+- `warehouse@agripod.local` - WarehouseManager
+- `coordinator@agripod.local` - DistrictCoordinator
+- `field@agripod.local` - FieldOfficer
+- `driver@agripod.local` - Driver
+- `me@agripod.local` - MonitoringEvaluationOfficer
+- `audit@agripod.local` - Auditor
+
+The API enforces JWT bearer authentication and role restrictions on workflow controllers. The portal login page stores the JWT for the current Blazor Server circuit and attaches it to API calls.
+
 The API seeds demo data on startup:
 
 - Users and roles

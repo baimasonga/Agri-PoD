@@ -15,6 +15,7 @@ public sealed class FarmersController(FarmerService farmerService) : ControllerB
         await farmerService.ListAsync(cancellationToken);
 
     [HttpPost]
+    [AllowAnonymous]
     public async Task<ActionResult<FarmerDto>> Register(RegisterFarmerRequest request, CancellationToken cancellationToken)
     {
         var farmer = await farmerService.RegisterAsync(request, cancellationToken);
