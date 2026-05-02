@@ -1,10 +1,12 @@
 using AgriPod.Application.Campaigns;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,ProjectManager,DistrictCoordinator,Auditor,MonitoringEvaluationOfficer")]
 [Route("api/v1/campaigns")]
 public sealed class CampaignsController(CampaignService campaignService) : ControllerBase
 {

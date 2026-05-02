@@ -1,10 +1,12 @@
 using AgriPod.Application.Fleet;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,Driver,ProjectManager,DistrictCoordinator,Auditor,MonitoringEvaluationOfficer")]
 [Route("api/v1/fleet")]
 public sealed class FleetController(FleetTrackingService fleetTrackingService) : ControllerBase
 {

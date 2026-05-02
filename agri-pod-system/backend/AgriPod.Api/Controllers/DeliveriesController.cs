@@ -1,10 +1,12 @@
 using AgriPod.Application.Deliveries;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,FieldOfficer,DistrictCoordinator,Auditor,MonitoringEvaluationOfficer")]
 [Route("api/v1/deliveries")]
 public sealed class DeliveriesController(DeliveryService deliveryService) : ControllerBase
 {

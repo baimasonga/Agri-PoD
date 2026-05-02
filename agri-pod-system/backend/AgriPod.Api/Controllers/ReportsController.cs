@@ -1,10 +1,12 @@
 using AgriPod.Application.Reports;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,ProjectManager,MonitoringEvaluationOfficer,Auditor")]
 [Route("api/v1/reports")]
 public sealed class ReportsController(ReportingService reportingService) : ControllerBase
 {

@@ -287,6 +287,29 @@ p {
     padding: 0.85rem 1rem;
 }
 
+.login-shell {
+    align-items: center;
+    display: grid;
+    min-height: calc(100vh - 8rem);
+}
+
+.login-panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin: 0 auto;
+    max-width: 34rem;
+    padding: 1.5rem;
+    width: 100%;
+}
+
+.demo-logins {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
 table {
     border-collapse: collapse;
     width: 100%;

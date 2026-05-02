@@ -1,10 +1,12 @@
 using AgriPod.Application.Deliveries;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,FieldOfficer,DistrictCoordinator")]
 [Route("api/v1/proof-of-delivery")]
 public sealed class ProofOfDeliveryController(ProofOfDeliveryService proofOfDeliveryService) : ControllerBase
 {

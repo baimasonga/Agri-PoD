@@ -1,10 +1,12 @@
 using AgriPod.Application.Abstractions;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,FieldOfficer,DistrictCoordinator")]
 [Route("api/v1/otp")]
 public sealed class OtpController(IOtpProvider otpProvider) : ControllerBase
 {

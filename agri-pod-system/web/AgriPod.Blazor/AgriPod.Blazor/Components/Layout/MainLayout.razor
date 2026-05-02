@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@inject PortalAuthState AuthState
+@inject NavigationManager Navigation
 
 <div class="page">
     <div class="sidebar">
@@ -9,16 +11,46 @@
         <div class="top-row">
             <div>
                 <strong>National command portal</strong>
-                <span>Online database: Azure SQL</span>
+                <span>@(AuthState.IsAuthenticated ? $"{AuthState.Email} - {AuthState.Role}" : "Sign in required")</span>
             </div>
-            <button class="sync-button" type="button">Sync districts</button>
+            @if (AuthState.IsAuthenticated)
+            {
+                <button class="sync-button" type="button" @onclick="SignOut">Sign out</button>
+            }
+            else
+            {
+                <button class="sync-button" type="button" @onclick="SignIn">Sign in</button>
+            }
         </div>
 
         <article class="content">
-            @Body
+            @if (!AuthState.IsAuthenticated && !IsLoginPage)
+            {
+                <section class="login-panel">
+                    <h1>Sign in required</h1>
+                    <p>Use a seeded demo role to access Agri-PoD workflows.</p>
+                    <button type="button" @onclick="SignIn">Go to login</button>
+                </section>
+            }
+            else
+            {
+                @Body
+            }
         </article>
     </main>
 </div>
+
+@code {
+    private bool IsLoginPage => new Uri(Navigation.Uri).AbsolutePath.Equals("/login", StringComparison.OrdinalIgnoreCase);
+
+    private void SignOut()
+    {
+        AuthState.SignOut();
+        Navigation.NavigateTo("/login");
+    }
+
+    private void SignIn() => Navigation.NavigateTo("/login");
+}
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.

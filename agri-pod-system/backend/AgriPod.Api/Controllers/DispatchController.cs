@@ -1,10 +1,12 @@
 using AgriPod.Application.Dispatch;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,WarehouseManager,Driver,DistrictCoordinator,Auditor")]
 [Route("api/v1/dispatch")]
 public sealed class DispatchController(DispatchService dispatchService) : ControllerBase
 {

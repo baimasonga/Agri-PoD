@@ -1,10 +1,12 @@
 using AgriPod.Application.Procurement;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,ProcurementOfficer,WarehouseManager,Auditor")]
 [Route("api/v1/procurement")]
 public sealed class ProcurementController(ProcurementService procurementService) : ControllerBase
 {

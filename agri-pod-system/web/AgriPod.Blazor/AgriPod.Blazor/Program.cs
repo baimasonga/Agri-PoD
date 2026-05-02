@@ -1,11 +1,14 @@
 using AgriPod.Blazor.Components;
+using AgriPod.Blazor.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddScoped<PortalAuthState>();
+builder.Services.AddTransient<AuthHeaderHandler>();
 builder.Services.AddHttpClient("AgriPodApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5068");
-});
+}).AddHttpMessageHandler<AuthHeaderHandler>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()

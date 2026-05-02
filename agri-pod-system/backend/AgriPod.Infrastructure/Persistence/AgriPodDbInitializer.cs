@@ -33,8 +33,13 @@ public static class AgriPodDbInitializer
         {
             db.AppUsers.AddRange(
                 new AppUser("Admin User", "admin@agripod.local", "+23276000001", SystemRole.SystemAdministrator, "WESTERN"),
+                new AppUser("Project Manager", "manager@agripod.local", "+23276000005", SystemRole.ProjectManager, "WESTERN"),
+                new AppUser("Procurement Officer", "procurement@agripod.local", "+23276000006", SystemRole.ProcurementOfficer, "WESTERN"),
+                new AppUser("Warehouse Manager", "warehouse@agripod.local", "+23276000007", SystemRole.WarehouseManager, "BOMBALI"),
                 new AppUser("District Coordinator", "coordinator@agripod.local", "+23276000002", SystemRole.DistrictCoordinator, "BOMBALI"),
                 new AppUser("Field Officer", "field@agripod.local", "+23276000003", SystemRole.FieldOfficer, "BOMBALI"),
+                new AppUser("Driver", "driver@agripod.local", "+23276000008", SystemRole.Driver, "BOMBALI"),
+                new AppUser("M&E Officer", "me@agripod.local", "+23276000009", SystemRole.MonitoringEvaluationOfficer, "WESTERN"),
                 new AppUser("Auditor", "audit@agripod.local", "+23276000004", SystemRole.Auditor, "WESTERN"));
         }
 

@@ -1,10 +1,12 @@
 using AgriPod.Application.Farmers;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,DistrictCoordinator,FieldOfficer,Auditor,MonitoringEvaluationOfficer")]
 [Route("api/v1/farmers")]
 public sealed class FarmersController(FarmerService farmerService) : ControllerBase
 {

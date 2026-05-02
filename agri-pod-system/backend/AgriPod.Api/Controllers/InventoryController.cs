@@ -1,10 +1,12 @@
 using AgriPod.Application.Inventory;
 using AgriPod.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "SystemAdministrator,ProjectManager,ProcurementOfficer,WarehouseManager,Auditor,MonitoringEvaluationOfficer")]
 [Route("api/v1/inventory-items")]
 public sealed class InventoryController(InventoryService inventoryService) : ControllerBase
 {

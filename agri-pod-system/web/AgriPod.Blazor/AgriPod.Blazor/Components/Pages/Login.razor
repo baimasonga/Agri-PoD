@@ -1,0 +1,81 @@
+@page "/login"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+@inject PortalAuthState AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Login</PageTitle>
+
+<section class="login-shell">
+    <div class="login-panel">
+        <h1>Sign in</h1>
+        <p>Use a seeded demo account to access role-specific workflows.</p>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <section class="notice">@_message</section>
+        }
+
+        <div class="form-stack">
+            <label>Email <input @bind="_email" /></label>
+            <label>Password <input type="password" @bind="_password" /></label>
+            <button type="button" @onclick="SignIn">Sign in</button>
+        </div>
+
+        <div class="demo-logins">
+            @foreach (var account in DemoAccounts)
+            {
+                <button class="secondary-button" type="button" @onclick="() => UseAccount(account.Email)">@account.Label</button>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private string _email = "admin@agripod.local";
+    private string _password = "demo";
+    private string? _message;
+
+    private static readonly DemoAccount[] DemoAccounts =
+    [
+        new("Admin", "admin@agripod.local"),
+        new("Project manager", "manager@agripod.local"),
+        new("Procurement", "procurement@agripod.local"),
+        new("Warehouse", "warehouse@agripod.local"),
+        new("Coordinator", "coordinator@agripod.local"),
+        new("Field", "field@agripod.local"),
+        new("Driver", "driver@agripod.local"),
+        new("M&E", "me@agripod.local"),
+        new("Auditor", "audit@agripod.local")
+    ];
+
+    private void UseAccount(string email)
+    {
+        _email = email;
+        _password = "demo";
+    }
+
+    private async Task SignIn()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(_email, _password));
+        if (!response.IsSuccessStatusCode)
+        {
+            _message = $"Login failed: {response.StatusCode}";
+            return;
+        }
+
+        var token = await response.Content.ReadFromJsonAsync<AuthTokenResponse>();
+        if (token is null)
+        {
+            _message = "Login response was empty.";
+            return;
+        }
+
+        AuthState.SignIn(_email, token.Role, token.AccessToken, token.ExpiresAt);
+        Navigation.NavigateTo("/");
+    }
+
+    private sealed record DemoAccount(string Label, string Email);
+}

@@ -1,3 +1,5 @@
+@inject PortalAuthState AuthState
+
 <div class="brand">
     <div class="brand-mark">AP</div>
     <div>
@@ -11,46 +13,70 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
         <div class="nav-item">
+            <NavLink class="nav-link" href="login">
+                <span aria-hidden="true">00</span> Login
+            </NavLink>
+        </div>
+
+        <div class="nav-item">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span aria-hidden="true">01</span> Dashboard
             </NavLink>
         </div>
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="inventory">
-                <span aria-hidden="true">02</span> Inventory
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator", "ProjectManager", "ProcurementOfficer", "WarehouseManager", "Auditor", "MonitoringEvaluationOfficer"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="inventory">
+                    <span aria-hidden="true">02</span> Inventory
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="farmers">
-                <span aria-hidden="true">03</span> Farmers
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator", "DistrictCoordinator", "FieldOfficer", "Auditor", "MonitoringEvaluationOfficer"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="farmers">
+                    <span aria-hidden="true">03</span> Farmers
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="procurement">
-                <span aria-hidden="true">04</span> Procurement
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator", "ProcurementOfficer", "WarehouseManager", "Auditor"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="procurement">
+                    <span aria-hidden="true">04</span> Procurement
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="campaigns">
-                <span aria-hidden="true">05</span> Campaigns
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="campaigns">
+                    <span aria-hidden="true">05</span> Campaigns
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="deliveries">
-                <span aria-hidden="true">06</span> Deliveries
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator", "FieldOfficer", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="deliveries">
+                    <span aria-hidden="true">06</span> Deliveries
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="fleet">
-                <span aria-hidden="true">07</span> Fleet GPS
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator", "Driver", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="fleet">
+                    <span aria-hidden="true">07</span> Fleet GPS
+                </NavLink>
+            </div>
+        }
 
         <div class="nav-item">
             <NavLink class="nav-link" href="offline-sync">
@@ -58,22 +84,31 @@
             </NavLink>
         </div>
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="compliance">
-                <span aria-hidden="true">09</span> Compliance
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator", "Auditor", "DistrictCoordinator"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="compliance">
+                    <span aria-hidden="true">09</span> Compliance
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="reports">
-                <span aria-hidden="true">10</span> Reports
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator", "ProjectManager", "MonitoringEvaluationOfficer", "Auditor"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="reports">
+                    <span aria-hidden="true">10</span> Reports
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item">
-            <NavLink class="nav-link" href="users">
-                <span aria-hidden="true">11</span> Users
-            </NavLink>
-        </div>
+        @if (AuthState.IsInRole("SystemAdministrator"))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="users">
+                    <span aria-hidden="true">11</span> Users
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>
