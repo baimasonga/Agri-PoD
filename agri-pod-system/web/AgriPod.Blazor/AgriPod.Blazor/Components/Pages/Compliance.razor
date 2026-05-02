@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
 
 <PageTitle>Compliance</PageTitle>
 
@@ -9,6 +10,11 @@
     <h1>Exceptions and audit</h1>
     <p>Auditors and supervisors investigate duplicate deliveries, OTP failures, face mismatch, GPS mismatch, and missing stock.</p>
 </section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <section class="notice">@_message</section>
+}
 
 <section class="workbench">
     <div class="panel large-panel">
@@ -23,7 +29,15 @@
                         <td>@item.Severity</td>
                         <td>@item.Description</td>
                         <td><span class="state @(item.Status == "Open" ? "warn" : "ok")">@item.Status</span></td>
-                        <td>@if (item.Status == "Open") { <button type="button" @onclick="() => Resolve(item.Id)">Resolve</button> }</td>
+                        <td>
+                            @if (item.Status == "Open")
+                            {
+                                <form class="inline-form" method="post" action="/portal-actions/compliance/resolve">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit">Resolve</button>
+                                </form>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -50,8 +64,13 @@
 @code {
     private readonly List<ExceptionCaseDto> _exceptions = [];
     private readonly List<AuditLogDto> _auditLogs = [];
+    private string? _message;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        _message = QueryMessage();
+        await Load();
+    }
 
     private async Task Load()
     {
@@ -66,5 +85,12 @@
         var client = HttpClientFactory.CreateClient("AgriPodApi");
         await client.PostAsJsonAsync($"/api/v1/compliance/exceptions/{id}/resolve", new ResolveExceptionCaseRequest("Resolved"));
         await Load();
+    }
+
+    private string? QueryMessage()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        const string key = "?message=";
+        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

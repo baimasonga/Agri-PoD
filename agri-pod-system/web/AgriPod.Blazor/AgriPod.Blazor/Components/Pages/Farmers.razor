@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
 
 <PageTitle>Farmers</PageTitle>
 
@@ -43,8 +44,16 @@
                         <td>
                             @if (farmer.Status == "PendingReview")
                             {
-                                <button type="button" @onclick="() => ReviewFarmer(farmer.Id, true)">Approve</button>
-                                <button class="secondary-button" type="button" @onclick="() => ReviewFarmer(farmer.Id, false)">Reject</button>
+                                <form class="inline-form" method="post" action="/portal-actions/farmers/review">
+                                    <input type="hidden" name="id" value="@farmer.Id" />
+                                    <input type="hidden" name="approved" value="true" />
+                                    <button type="submit">Approve</button>
+                                </form>
+                                <form class="inline-form" method="post" action="/portal-actions/farmers/review">
+                                    <input type="hidden" name="id" value="@farmer.Id" />
+                                    <input type="hidden" name="approved" value="false" />
+                                    <button class="secondary-button" type="submit">Reject</button>
+                                </form>
                             }
                         </td>
                     </tr>
@@ -54,16 +63,16 @@
     </div>
     <div class="panel">
         <h2>Register demo farmer</h2>
-        <div class="form-stack">
-            <label>Full name <input @bind="_newFarmer.FullName" /></label>
-            <label>National ID <input @bind="_newFarmer.NationalId" /></label>
-            <label>Phone <input @bind="_newFarmer.Phone" /></label>
-            <label>District <input @bind="_newFarmer.DistrictCode" /></label>
-            <label>Chiefdom <input @bind="_newFarmer.Chiefdom" /></label>
-            <label>Community <input @bind="_newFarmer.Community" /></label>
-            <label>Value chain <input @bind="_newFarmer.ValueChain" /></label>
-            <button type="button" @onclick="RegisterFarmer">Register</button>
-        </div>
+        <form class="form-stack" method="post" action="/portal-actions/farmers/register">
+            <label>Full name <input name="fullName" @bind="_newFarmer.FullName" /></label>
+            <label>National ID <input name="nationalId" @bind="_newFarmer.NationalId" /></label>
+            <label>Phone <input name="phone" @bind="_newFarmer.Phone" /></label>
+            <label>District <input name="districtCode" @bind="_newFarmer.DistrictCode" /></label>
+            <label>Chiefdom <input name="chiefdom" @bind="_newFarmer.Chiefdom" /></label>
+            <label>Community <input name="community" @bind="_newFarmer.Community" /></label>
+            <label>Value chain <input name="valueChain" @bind="_newFarmer.ValueChain" /></label>
+            <button type="submit">Register</button>
+        </form>
     </div>
 </section>
 
@@ -87,6 +96,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _message = QueryMessage();
         await LoadFarmers();
     }
 
@@ -98,7 +108,7 @@
             var farmers = await client.GetFromJsonAsync<List<FarmerDto>>("/api/v1/farmers") ?? [];
             _farmers.Clear();
             _farmers.AddRange(farmers);
-            _message = null;
+            _message ??= null;
         }
         catch (Exception ex)
         {
@@ -163,5 +173,12 @@
             Community = "Koidu",
             ValueChain = "Vegetable"
         };
+    }
+
+    private string? QueryMessage()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        const string key = "?message=";
+        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

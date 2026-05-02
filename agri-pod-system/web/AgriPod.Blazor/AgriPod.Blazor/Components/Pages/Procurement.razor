@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
 
 <PageTitle>Procurement</PageTitle>
 
@@ -9,6 +10,11 @@
     <h1>Procurement and stock receiving</h1>
     <p>Purchased inputs are registered by supplier, quantity, batch, quality checks, expiry, and package barcode generation.</p>
 </section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <section class="notice">@_message</section>
+}
 
 <section class="workbench">
     <div class="panel large-panel">
@@ -25,11 +31,11 @@
     </div>
     <div class="panel">
         <h2>Create supplier</h2>
-        <div class="form-stack">
-            <label>Name <input @bind="_supplier.Name" /></label>
-            <label>Phone <input @bind="_supplier.Phone" /></label>
-            <button type="button" @onclick="CreateSupplier">Create supplier</button>
-        </div>
+        <form class="form-stack" method="post" action="/portal-actions/procurement/create-supplier">
+            <label>Name <input name="name" @bind="_supplier.Name" /></label>
+            <label>Phone <input name="phone" @bind="_supplier.Phone" /></label>
+            <button type="submit">Create supplier</button>
+        </form>
     </div>
 </section>
 
@@ -47,9 +53,14 @@
     private readonly List<SupplierDto> _suppliers = [];
     private readonly List<PurchaseOrderDto> _orders = [];
     private readonly List<InventoryItemDto> _items = [];
+    private string? _message;
     private SupplierForm _supplier = SupplierForm.Default();
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        _message = QueryMessage();
+        await Load();
+    }
 
     private async Task Load()
     {
@@ -62,10 +73,24 @@
 
     private async Task CreateSupplier()
     {
-        var client = HttpClientFactory.CreateClient("AgriPodApi");
-        await client.PostAsJsonAsync("/api/v1/procurement/suppliers", new CreateSupplierRequest(_supplier.Name, _supplier.Phone));
-        _supplier = SupplierForm.Default();
-        await Load();
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            var response = await client.PostAsJsonAsync("/api/v1/procurement/suppliers", new CreateSupplierRequest(_supplier.Name, _supplier.Phone));
+            if (!response.IsSuccessStatusCode)
+            {
+                _message = $"Create supplier failed: {response.StatusCode}";
+                return;
+            }
+
+            _message = $"Created supplier {_supplier.Name}.";
+            _supplier = SupplierForm.Default();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Create supplier failed: {ex.Message}";
+        }
     }
 
     private string SupplierName(Guid id) => _suppliers.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
@@ -76,5 +101,12 @@
         public string Name { get; set; } = "";
         public string Phone { get; set; } = "";
         public static SupplierForm Default() => new() { Name = $"Supplier {Random.Shared.Next(100,999)}", Phone = "+23276002001" };
+    }
+
+    private string? QueryMessage()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        const string key = "?message=";
+        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

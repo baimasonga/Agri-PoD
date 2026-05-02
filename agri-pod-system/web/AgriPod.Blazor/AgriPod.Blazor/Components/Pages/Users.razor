@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
 
 <PageTitle>Users</PageTitle>
 
@@ -43,14 +44,14 @@
     </div>
     <div class="panel">
         <h2>Create demo user</h2>
-        <div class="form-stack">
-            <label>Full name <input @bind="_form.FullName" /></label>
-            <label>Email <input @bind="_form.Email" /></label>
-            <label>Phone <input @bind="_form.Phone" /></label>
-            <label>Role <input @bind="_form.Role" /></label>
-            <label>District <input @bind="_form.DistrictCode" /></label>
-            <button type="button" @onclick="CreateUser">Create user</button>
-        </div>
+        <form class="form-stack" method="post" action="/portal-actions/users/create">
+            <label>Full name <input name="fullName" @bind="_form.FullName" /></label>
+            <label>Email <input name="email" @bind="_form.Email" /></label>
+            <label>Phone <input name="phone" @bind="_form.Phone" /></label>
+            <label>Role <input name="role" @bind="_form.Role" /></label>
+            <label>District <input name="districtCode" @bind="_form.DistrictCode" /></label>
+            <button type="submit">Create user</button>
+        </form>
     </div>
 </section>
 
@@ -66,7 +67,11 @@
     private string? _message;
     private UserForm _form = UserForm.Default();
 
-    protected override async Task OnInitializedAsync() => await LoadUsers();
+    protected override async Task OnInitializedAsync()
+    {
+        _message = QueryMessage();
+        await LoadUsers();
+    }
 
     private async Task LoadUsers()
     {
@@ -77,12 +82,25 @@
 
     private async Task CreateUser()
     {
-        var client = HttpClientFactory.CreateClient("AgriPodApi");
-        var request = new CreateUserRequest(_form.FullName, _form.Email, _form.Phone, _form.Role, _form.DistrictCode);
-        var response = await client.PostAsJsonAsync("/api/v1/users", request);
-        _message = response.IsSuccessStatusCode ? "User created." : $"Create failed: {response.StatusCode}";
-        _form = UserForm.Default();
-        await LoadUsers();
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            var request = new CreateUserRequest(_form.FullName, _form.Email, _form.Phone, _form.Role, _form.DistrictCode);
+            var response = await client.PostAsJsonAsync("/api/v1/users", request);
+            if (!response.IsSuccessStatusCode)
+            {
+                _message = $"Create user failed: {response.StatusCode}";
+                return;
+            }
+
+            _message = $"Created user {_form.Email}.";
+            _form = UserForm.Default();
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Create user failed: {ex.Message}";
+        }
     }
 
     private sealed class UserForm
@@ -101,5 +119,12 @@
             Role = "WarehouseManager",
             DistrictCode = "BOMBALI"
         };
+    }
+
+    private string? QueryMessage()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        const string key = "?message=";
+        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
 
 <PageTitle>Campaigns</PageTitle>
 
@@ -32,9 +33,15 @@
                         <td>
                             @if (campaign.Status == "PendingApproval")
                             {
-                                <button type="button" @onclick="() => Approve(campaign.Id)">Approve</button>
+                                <form class="inline-form" method="post" action="/portal-actions/campaigns/approve">
+                                    <input type="hidden" name="id" value="@campaign.Id" />
+                                    <button type="submit">Approve</button>
+                                </form>
                             }
-                            <button class="secondary-button" type="button" @onclick="() => Allocate(campaign.Id)">Allocate</button>
+                            <form class="inline-form" method="post" action="/portal-actions/campaigns/allocate">
+                                <input type="hidden" name="id" value="@campaign.Id" />
+                                <button class="secondary-button" type="submit">Allocate</button>
+                            </form>
                         </td>
                     </tr>
                 }
@@ -43,12 +50,12 @@
     </div>
     <div class="panel">
         <h2>Create campaign</h2>
-        <div class="form-stack">
-            <label>Name <input @bind="_form.Name" /></label>
-            <label>District <input @bind="_form.DistrictCode" /></label>
-            <label>Value chain <input @bind="_form.ValueChain" /></label>
-            <button type="button" @onclick="CreateCampaign">Create campaign</button>
-        </div>
+        <form class="form-stack" method="post" action="/portal-actions/campaigns/create">
+            <label>Name <input name="name" @bind="_form.Name" /></label>
+            <label>District <input name="districtCode" @bind="_form.DistrictCode" /></label>
+            <label>Value chain <input name="valueChain" @bind="_form.ValueChain" /></label>
+            <button type="submit">Create campaign</button>
+        </form>
     </div>
 </section>
 
@@ -73,7 +80,11 @@
     private string? _message;
     private CampaignForm _form = CampaignForm.Default();
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        _message = QueryMessage();
+        await Load();
+    }
 
     private async Task Load()
     {
@@ -92,18 +103,40 @@
 
     private async Task CreateCampaign()
     {
-        var client = HttpClientFactory.CreateClient("AgriPodApi");
-        var request = new CreateCampaignRequest(_form.Name, _form.DistrictCode, _form.ValueChain, DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today.AddDays(30)), 8.889m, -12.044m, 150m);
-        await client.PostAsJsonAsync("/api/v1/campaigns", request);
-        _form = CampaignForm.Default();
-        await Load();
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            var request = new CreateCampaignRequest(_form.Name, _form.DistrictCode, _form.ValueChain, DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today.AddDays(30)), 8.889m, -12.044m, 150m);
+            var response = await client.PostAsJsonAsync("/api/v1/campaigns", request);
+            if (!response.IsSuccessStatusCode)
+            {
+                _message = $"Create campaign failed: {response.StatusCode}";
+                return;
+            }
+
+            _message = $"Created campaign {_form.Name}.";
+            _form = CampaignForm.Default();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Create campaign failed: {ex.Message}";
+        }
     }
 
     private async Task Approve(Guid id)
     {
-        var client = HttpClientFactory.CreateClient("AgriPodApi");
-        await client.PostAsync($"/api/v1/campaigns/{id}/approve", null);
-        await Load();
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            var response = await client.PostAsync($"/api/v1/campaigns/{id}/approve", null);
+            _message = response.IsSuccessStatusCode ? "Campaign approved." : $"Approve failed: {response.StatusCode}";
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Approve failed: {ex.Message}";
+        }
     }
 
     private async Task Allocate(Guid campaignId)
@@ -116,10 +149,17 @@
             return;
         }
 
-        var client = HttpClientFactory.CreateClient("AgriPodApi");
-        await client.PostAsJsonAsync("/api/v1/campaigns/allocations", new AllocateFarmerRequest(campaignId, farmer.Id, item.Id, 50m));
-        _message = $"Allocated {item.Name} to {farmer.FullName}.";
-        await Load();
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            var response = await client.PostAsJsonAsync("/api/v1/campaigns/allocations", new AllocateFarmerRequest(campaignId, farmer.Id, item.Id, 50m));
+            _message = response.IsSuccessStatusCode ? $"Allocated {item.Name} to {farmer.FullName}." : $"Allocation failed: {response.StatusCode}";
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Allocation failed: {ex.Message}";
+        }
     }
 
     private string FarmerName(Guid id) => _farmers.FirstOrDefault(x => x.Id == id)?.FullName ?? id.ToString("N")[..8];
@@ -134,5 +174,12 @@
         public string DistrictCode { get; set; } = "";
         public string ValueChain { get; set; } = "";
         public static CampaignForm Default() => new() { Name = $"Campaign {Random.Shared.Next(100,999)}", DistrictCode = "BOMBALI", ValueChain = "Rice" };
+    }
+
+    private string? QueryMessage()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        const string key = "?message=";
+        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

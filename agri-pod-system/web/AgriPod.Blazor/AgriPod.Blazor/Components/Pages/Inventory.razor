@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
 
 <PageTitle>Inventory</PageTitle>
 
@@ -16,6 +17,11 @@
     <div class="metric-card"><span>Stock lots</span><strong>@_lots.Count</strong><p>batches with traceability</p></div>
     <div class="metric-card warning"><span>Total quantity</span><strong>@_lots.Sum(x => x.Quantity).ToString("N0")</strong><p>all tracked units</p></div>
 </section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <section class="notice">@_message</section>
+}
 
 <section class="workbench">
     <div class="panel large-panel">
@@ -32,13 +38,13 @@
     </div>
     <div class="panel">
         <h2>Create item</h2>
-        <div class="form-stack">
-            <label>SKU <input @bind="_item.Sku" /></label>
-            <label>Name <input @bind="_item.Name" /></label>
-            <label>Category <input @bind="_item.Category" /></label>
-            <label>Unit <input @bind="_item.UnitOfMeasure" /></label>
-            <button type="button" @onclick="CreateItem">Create item</button>
-        </div>
+        <form class="form-stack" method="post" action="/portal-actions/inventory/create-item">
+            <label>SKU <input name="sku" @bind="_item.Sku" /></label>
+            <label>Name <input name="name" @bind="_item.Name" /></label>
+            <label>Category <input name="category" @bind="_item.Category" /></label>
+            <label>Unit <input name="unitOfMeasure" @bind="_item.UnitOfMeasure" /></label>
+            <button type="submit">Create item</button>
+        </form>
     </div>
 </section>
 
@@ -46,9 +52,14 @@
     private readonly List<InventoryItemDto> _items = [];
     private readonly List<WarehouseDto> _warehouses = [];
     private readonly List<StockLotDto> _lots = [];
+    private string? _message;
     private ItemForm _item = ItemForm.Default();
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        _message = QueryMessage();
+        await Load();
+    }
 
     private async Task Load()
     {
@@ -61,10 +72,24 @@
 
     private async Task CreateItem()
     {
-        var client = HttpClientFactory.CreateClient("AgriPodApi");
-        await client.PostAsJsonAsync("/api/v1/inventory-items", new CreateInventoryItemRequest(_item.Sku, _item.Name, _item.Category, _item.UnitOfMeasure));
-        _item = ItemForm.Default();
-        await Load();
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            var response = await client.PostAsJsonAsync("/api/v1/inventory-items", new CreateInventoryItemRequest(_item.Sku, _item.Name, _item.Category, _item.UnitOfMeasure));
+            if (!response.IsSuccessStatusCode)
+            {
+                _message = $"Create item failed: {response.StatusCode}";
+                return;
+            }
+
+            _message = $"Created item {_item.Sku}.";
+            _item = ItemForm.Default();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Create item failed: {ex.Message}";
+        }
     }
 
     private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
@@ -76,5 +101,12 @@
         public string Category { get; set; } = "";
         public string UnitOfMeasure { get; set; } = "";
         public static ItemForm Default() => new() { Sku = $"INPUT-{Random.Shared.Next(100,999)}", Name = "Demo input", Category = "Seed", UnitOfMeasure = "kg" };
+    }
+
+    private string? QueryMessage()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        const string key = "?message=";
+        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

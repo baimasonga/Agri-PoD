@@ -41,6 +41,11 @@ button {
     margin-left: 0.4rem;
 }
 
+.inline-form {
+    display: inline-flex;
+    margin: 0 0.35rem 0.35rem 0;
+}
+
 input {
     border: 1px solid var(--line);
     border-radius: 6px;
