@@ -67,6 +67,35 @@ public sealed record DistrictDto(Guid Id, string Code, string Name);
 
 public sealed record ChiefdomDto(Guid Id, string DistrictCode, string Name);
 
+public sealed record CreateDistrictRequest(string Code, string Name);
+
+public sealed record CreateChiefdomRequest(string DistrictCode, string Name);
+
+public sealed record SystemSettingsDto(
+    int OtpExpiryMinutes,
+    decimal DefaultGeofenceRadiusMeters,
+    bool DeviceBindingRequired,
+    bool BiometricEvidenceRequired,
+    bool OfflineSyncEnabled,
+    string SensitiveDataPolicy);
+
+public sealed record DeviceBindingDto(
+    string DeviceId,
+    string DistrictCode,
+    string BoundUserEmail,
+    string Status,
+    DateTimeOffset BoundAt);
+
+public sealed record RegisterDeviceBindingRequest(string DeviceId, string DistrictCode, string BoundUserEmail);
+
+public sealed record UpdateSystemSettingsRequest(
+    int OtpExpiryMinutes,
+    decimal DefaultGeofenceRadiusMeters,
+    bool DeviceBindingRequired,
+    bool BiometricEvidenceRequired,
+    bool OfflineSyncEnabled,
+    string SensitiveDataPolicy);
+
 public sealed record FarmerDto(
     Guid Id,
     string FullName,
@@ -170,6 +199,26 @@ public sealed record CreateExceptionCaseRequest(string CaseType, string Severity
 public sealed record ResolveExceptionCaseRequest(string Decision);
 
 public sealed record AuditLogDto(Guid Id, string ActorUserId, string Action, string EntityType, Guid? EntityId, string MetadataJson, DateTimeOffset CreatedAt);
+
+public sealed record BarcodeTokenDto(string TokenType, string Token, string EntityReference, DateTimeOffset GeneratedAt, string GeneratedByUserId, bool IsRevoked);
+
+public sealed record CreateBarcodeTokenRequest(string TokenType, string EntityReference, string GeneratedByUserId = "system");
+
+public sealed record StockReconciliationDto(
+    Guid Id,
+    Guid CampaignId,
+    string CampaignName,
+    decimal LoadedQuantity,
+    decimal DeliveredQuantity,
+    decimal ReturnedQuantity,
+    decimal DiscrepancyQuantity,
+    string Status,
+    DateTimeOffset CreatedAt,
+    string SupervisorUserId = "",
+    string Notes = "",
+    string ReviewStatus = "Preview");
+
+public sealed record CreateStockReconciliationRequest(Guid CampaignId, decimal ReturnedQuantity, string SupervisorUserId, string Notes);
 
 public sealed record ReportSummaryDto(
     int FarmersRegistered,

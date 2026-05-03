@@ -101,6 +101,13 @@
                     <span><strong>Offline sync</strong><small>Mobile queue contract</small></span>
                 </NavLink>
             </div>
+
+            <div class="nav-item">
+                <NavLink class="nav-link" href="traceability">
+                    <span class="nav-icon" aria-hidden="true">10</span>
+                    <span><strong>Traceability</strong><small>Barcode and reconciliation</small></span>
+                </NavLink>
+            </div>
         </div>
 
         <div class="nav-group">
@@ -109,7 +116,7 @@
             {
                 <div class="nav-item">
                     <NavLink class="nav-link" href="compliance">
-                        <span class="nav-icon" aria-hidden="true">10</span>
+                        <span class="nav-icon" aria-hidden="true">11</span>
                         <span><strong>Compliance</strong><small>Exceptions and audit</small></span>
                     </NavLink>
                 </div>
@@ -118,8 +125,14 @@
             @if (CanAccess("SystemAdministrator"))
             {
                 <div class="nav-item">
+                    <NavLink class="nav-link" href="administration">
+                        <span class="nav-icon" aria-hidden="true">12</span>
+                        <span><strong>Administration</strong><small>Districts and devices</small></span>
+                    </NavLink>
+                </div>
+                <div class="nav-item">
                     <NavLink class="nav-link" href="users">
-                        <span class="nav-icon" aria-hidden="true">11</span>
+                        <span class="nav-icon" aria-hidden="true">13</span>
                         <span><strong>Users</strong><small>Roles and access</small></span>
                     </NavLink>
                 </div>
@@ -127,7 +140,7 @@
 
             <div class="nav-item">
                 <NavLink class="nav-link" href="login">
-                    <span class="nav-icon" aria-hidden="true">12</span>
+                    <span class="nav-icon" aria-hidden="true">14</span>
                     <span><strong>Login</strong><small>Switch demo role</small></span>
                 </NavLink>
             </div>

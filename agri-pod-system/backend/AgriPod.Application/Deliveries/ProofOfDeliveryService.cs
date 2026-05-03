@@ -1,3 +1,4 @@
+using AgriPod.Application.Abstractions;
 using AgriPod.Domain.Compliance;
 using AgriPod.Domain.Common;
 using AgriPod.Shared;
@@ -9,6 +10,8 @@ public sealed class ProofOfDeliveryService(IAgriPodDbContext db)
 {
     public async Task<ProofOfDeliveryResult> ConfirmAsync(ProofOfDeliveryRequest request, CancellationToken cancellationToken)
     {
+        var messages = new List<string>();
+
         // 1. Idempotency Check
         var alreadyProcessed = await db.Deliveries
             .AnyAsync(x => x.ProofEvents.Any(p => p.OfflineTransactionId == request.OfflineTransactionId), cancellationToken);

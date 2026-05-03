@@ -1,0 +1,168 @@
+@page "/administration"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Administration</PageTitle>
+
+<section class="page-section">
+    <div>
+        <h1>Administration</h1>
+        <p>Manage districts, chiefdoms, security controls, device binding, and operational settings.</p>
+    </div>
+    <div class="status-strip">
+        <span>JWT roles</span>
+        <span>Device binding</span>
+        <span>Audit trail</span>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <section class="notice">@_message</section>
+}
+
+<section class="metric-grid">
+    <div class="metric-card"><span>Districts</span><strong>@_districts.Count</strong><p>operational boundaries configured</p></div>
+    <div class="metric-card"><span>Chiefdoms</span><strong>@_chiefdoms.Count</strong><p>local registration areas</p></div>
+    <div class="metric-card"><span>Bound devices</span><strong>@_deviceBindings.Count</strong><p>approved offline mobile nodes</p></div>
+    <div class="metric-card"><span>OTP expiry</span><strong>@_settings.OtpExpiryMinutes</strong><p>minutes before verification timeout</p></div>
+</section>
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header">
+            <div>
+                <h2>District and chiefdom register</h2>
+                <p>These records drive farmer registration, district review, campaign planning, and reporting.</p>
+            </div>
+            <button type="button" @onclick="Load">Refresh</button>
+        </div>
+        <table>
+            <thead><tr><th>District code</th><th>District name</th><th>Chiefdoms</th></tr></thead>
+            <tbody>
+                @foreach (var district in _districts)
+                {
+                    <tr>
+                        <td>@district.Code</td>
+                        <td>@district.Name</td>
+                        <td>@string.Join(", ", _chiefdoms.Where(x => x.DistrictCode == district.Code).Select(x => x.Name).DefaultIfEmpty("None configured"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Create district</h2>
+        <form class="form-stack" method="post" action="/portal-actions/admin/districts/create">
+            <label>Code <input name="code" value="KAILAHUN" /></label>
+            <label>Name <input name="name" value="Kailahun" /></label>
+            <button type="submit">Create district</button>
+        </form>
+    </div>
+</section>
+
+<section class="workbench">
+    <div class="panel">
+        <h2>Create chiefdom</h2>
+        <form class="form-stack" method="post" action="/portal-actions/admin/chiefdoms/create">
+            <label>
+                District
+                <select name="districtCode">
+                    @foreach (var district in _districts)
+                    {
+                        <option value="@district.Code">@district.Name</option>
+                    }
+                </select>
+            </label>
+            <label>Name <input name="name" value="Luawa" /></label>
+            <button type="submit">Create chiefdom</button>
+        </form>
+    </div>
+    <div class="panel">
+        <h2>Bind field device</h2>
+        <form class="form-stack" method="post" action="/portal-actions/admin/devices/bind">
+            <label>Device ID <input name="deviceId" value="@($"FIELD-{Random.Shared.Next(1000,9999)}")" /></label>
+            <label>
+                District
+                <select name="districtCode">
+                    @foreach (var district in _districts)
+                    {
+                        <option value="@district.Code">@district.Name</option>
+                    }
+                </select>
+            </label>
+            <label>User email <input name="boundUserEmail" value="field@agripod.local" /></label>
+            <button type="submit">Bind device</button>
+        </form>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header compact">
+        <h2>Security posture</h2>
+        <span class="state ok">Controls active</span>
+    </div>
+    <div class="check-list">
+        <span>Device binding required: @_settings.DeviceBindingRequired</span>
+        <span>Biometric evidence required: @_settings.BiometricEvidenceRequired</span>
+        <span>Offline sync enabled: @_settings.OfflineSyncEnabled</span>
+        <span>@_settings.SensitiveDataPolicy</span>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header compact">
+        <h2>Device binding register</h2>
+        <span class="state sync">District/offline control</span>
+    </div>
+    <table>
+        <thead><tr><th>Device</th><th>User</th><th>District</th><th>Status</th><th>Bound at</th></tr></thead>
+        <tbody>
+            @foreach (var binding in _deviceBindings)
+            {
+                <tr>
+                    <td>@binding.DeviceId</td>
+                    <td>@binding.BoundUserEmail</td>
+                    <td>@binding.DistrictCode</td>
+                    <td><span class="state ok">@binding.Status</span></td>
+                    <td>@binding.BoundAt.ToLocalTime().ToString("g")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+@code {
+    private readonly List<DistrictDto> _districts = [];
+    private readonly List<ChiefdomDto> _chiefdoms = [];
+    private readonly List<DeviceBindingDto> _deviceBindings = [];
+    private SystemSettingsDto _settings = new(10, 150m, true, true, true, "");
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _message = QueryMessage();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _districts.Clear();
+        _chiefdoms.Clear();
+        _deviceBindings.Clear();
+        _districts.AddRange(await client.GetFromJsonAsync<List<DistrictDto>>("/api/v1/administration/districts") ?? []);
+        _chiefdoms.AddRange(await client.GetFromJsonAsync<List<ChiefdomDto>>("/api/v1/administration/chiefdoms") ?? []);
+        _deviceBindings.AddRange(await client.GetFromJsonAsync<List<DeviceBindingDto>>("/api/v1/administration/devices") ?? []);
+        _settings = await client.GetFromJsonAsync<SystemSettingsDto>("/api/v1/administration/settings") ?? _settings;
+    }
+
+    private string? QueryMessage()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        const string key = "?message=";
+        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
+    }
+}

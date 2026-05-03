@@ -9,6 +9,7 @@ using AgriPod.Domain.Fleet;
 using AgriPod.Domain.Inventory;
 using AgriPod.Domain.Procurement;
 using AgriPod.Domain.Security;
+using AgriPod.Domain.Traceability;
 using Microsoft.EntityFrameworkCore;
 
 namespace AgriPod.Infrastructure.Persistence;
@@ -23,6 +24,8 @@ public sealed class AgriPodDbContext(DbContextOptions<AgriPodDbContext> options)
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<District> Districts => Set<District>();
     public DbSet<Chiefdom> Chiefdoms => Set<Chiefdom>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<DeviceBinding> DeviceBindings => Set<DeviceBinding>();
     public DbSet<Farmer> Farmers => Set<Farmer>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
@@ -33,6 +36,8 @@ public sealed class AgriPodDbContext(DbContextOptions<AgriPodDbContext> options)
     public DbSet<DistributionSession> DistributionSessions => Set<DistributionSession>();
     public DbSet<ExceptionCase> ExceptionCases => Set<ExceptionCase>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<BarcodeToken> BarcodeTokens => Set<BarcodeToken>();
+    public DbSet<StockReconciliation> StockReconciliations => Set<StockReconciliation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -114,8 +119,25 @@ public sealed class AgriPodDbContext(DbContextOptions<AgriPodDbContext> options)
 
         modelBuilder.Entity<Chiefdom>(entity =>
         {
+            entity.HasIndex(x => new { x.DistrictCode, x.Name }).IsUnique();
             entity.Property(x => x.DistrictCode).HasMaxLength(24);
             entity.Property(x => x.Name).HasMaxLength(120);
+        });
+
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.Property(x => x.DefaultGeofenceRadiusMeters).HasPrecision(10, 2);
+            entity.Property(x => x.SensitiveDataPolicy).HasMaxLength(800);
+        });
+
+        modelBuilder.Entity<DeviceBinding>(entity =>
+        {
+            entity.HasIndex(x => x.DeviceId).IsUnique();
+            entity.HasIndex(x => new { x.BoundUserEmail, x.Status });
+            entity.Property(x => x.DeviceId).HasMaxLength(96);
+            entity.Property(x => x.DistrictCode).HasMaxLength(24);
+            entity.Property(x => x.BoundUserEmail).HasMaxLength(160);
+            entity.Property(x => x.Status).HasMaxLength(40);
         });
 
         modelBuilder.Entity<Farmer>(entity =>
@@ -205,6 +227,30 @@ public sealed class AgriPodDbContext(DbContextOptions<AgriPodDbContext> options)
             entity.Property(x => x.ActorUserId).HasMaxLength(96);
             entity.Property(x => x.Action).HasMaxLength(120);
             entity.Property(x => x.EntityType).HasMaxLength(80);
+        });
+
+        modelBuilder.Entity<BarcodeToken>(entity =>
+        {
+            entity.HasIndex(x => x.Token).IsUnique();
+            entity.HasIndex(x => new { x.TokenType, x.EntityReference });
+            entity.Property(x => x.TokenType).HasMaxLength(32);
+            entity.Property(x => x.Token).HasMaxLength(128);
+            entity.Property(x => x.EntityReference).HasMaxLength(160);
+            entity.Property(x => x.GeneratedByUserId).HasMaxLength(96);
+        });
+
+        modelBuilder.Entity<StockReconciliation>(entity =>
+        {
+            entity.HasIndex(x => new { x.CampaignId, x.SubmittedAt });
+            entity.Property(x => x.CampaignName).HasMaxLength(160);
+            entity.Property(x => x.LoadedQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.DeliveredQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.ReturnedQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.DiscrepancyQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.Status).HasMaxLength(40);
+            entity.Property(x => x.SupervisorUserId).HasMaxLength(96);
+            entity.Property(x => x.Notes).HasMaxLength(800);
+            entity.Property(x => x.ReviewStatus).HasMaxLength(40);
         });
     }
 }

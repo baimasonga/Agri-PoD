@@ -288,6 +288,75 @@ app.MapPost("/portal-actions/fleet/confirm-loaded", async (HttpRequest request, 
     return Results.Redirect($"/fleet?message={Uri.EscapeDataString(result)}");
 }).DisableAntiforgery();
 
+app.MapPost("/portal-actions/admin/districts/create", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    var code = Read(form, "code");
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/administration/districts",
+        new CreateDistrictRequest(code, Read(form, "name")),
+        $"Created district {code}.");
+
+    return Results.Redirect($"/administration?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
+app.MapPost("/portal-actions/admin/chiefdoms/create", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    var chiefdom = Read(form, "name");
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/administration/chiefdoms",
+        new CreateChiefdomRequest(Read(form, "districtCode"), chiefdom),
+        $"Created chiefdom {chiefdom}.");
+
+    return Results.Redirect($"/administration?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
+app.MapPost("/portal-actions/admin/devices/bind", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    var deviceId = Read(form, "deviceId");
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/administration/devices/bind",
+        new RegisterDeviceBindingRequest(deviceId, Read(form, "districtCode"), Read(form, "boundUserEmail")),
+        $"Bound device {deviceId}.");
+
+    return Results.Redirect($"/administration?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
+app.MapPost("/portal-actions/traceability/barcodes/create", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/traceability/barcodes",
+        new CreateBarcodeTokenRequest(Read(form, "tokenType"), Read(form, "entityReference")),
+        "Generated barcode token.");
+
+    return Results.Redirect($"/traceability?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
+app.MapPost("/portal-actions/traceability/reconciliation/submit", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    if (!Guid.TryParse(Read(form, "campaignId"), out var campaignId) ||
+        !decimal.TryParse(Read(form, "returnedQuantity"), out var returnedQuantity))
+    {
+        return Results.Redirect("/traceability?message=Reconciliation%20requires%20campaign%20and%20returned%20quantity.");
+    }
+
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/traceability/reconciliation",
+        new CreateStockReconciliationRequest(campaignId, returnedQuantity, Read(form, "supervisorUserId"), Read(form, "notes")),
+        "Submitted stock reconciliation.");
+
+    return Results.Redirect($"/traceability?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
 app.Run();
 
 static string Read(IFormCollection form, string key) => form.TryGetValue(key, out var value) ? value.ToString() : "";

@@ -8,6 +8,7 @@ using AgriPod.Domain.Fleet;
 using AgriPod.Domain.Inventory;
 using AgriPod.Domain.Procurement;
 using AgriPod.Domain.Security;
+using AgriPod.Domain.Traceability;
 using Microsoft.EntityFrameworkCore;
 
 namespace AgriPod.Infrastructure.Persistence;
@@ -17,6 +18,7 @@ public static class AgriPodDbInitializer
     public static async Task InitializeAsync(AgriPodDbContext db, CancellationToken cancellationToken = default)
     {
         await db.Database.EnsureCreatedAsync(cancellationToken);
+        await EnsurePostFeatureTablesAsync(db, cancellationToken);
 
         if (!await db.Districts.AnyAsync(cancellationToken))
         {
@@ -27,6 +29,27 @@ public static class AgriPodDbInitializer
                 new District("KONO", "Kono"),
                 new District("PUJEHUN", "Pujehun"),
                 new District("KENEMA", "Kenema"));
+        }
+
+        if (!await db.Chiefdoms.AnyAsync(cancellationToken))
+        {
+            db.Chiefdoms.AddRange(
+                new Chiefdom("BOMBALI", "Bombali Sebora"),
+                new Chiefdom("BO", "Tikonko"),
+                new Chiefdom("KONO", "Gbense"),
+                new Chiefdom("PUJEHUN", "Kpaka"),
+                new Chiefdom("KENEMA", "Nongowa"));
+        }
+
+        if (!await db.SystemSettings.AnyAsync(cancellationToken))
+        {
+            db.SystemSettings.Add(new SystemSetting(
+                10,
+                150m,
+                true,
+                true,
+                true,
+                "Biometric images and OTP proof are stored as secure references and audited on every PoD event."));
         }
 
         if (!await db.AppUsers.AnyAsync(cancellationToken))
@@ -148,6 +171,19 @@ public static class AgriPodDbInitializer
             db.AuditLogs.Add(new AuditLog("system", "DevelopmentSeeded", "System", null, "{}"));
         }
 
+        if (!await db.DeviceBindings.AnyAsync(cancellationToken))
+        {
+            db.DeviceBindings.Add(new DeviceBinding("FIELD-DEMO-001", "BOMBALI", "field@agripod.local"));
+        }
+
+        if (!await db.BarcodeTokens.AnyAsync(cancellationToken))
+        {
+            db.BarcodeTokens.AddRange(
+                new BarcodeToken("FARMER", "FARMER-SEED-0001", "SL-NIN-00043", "system"),
+                new BarcodeToken("PACKAGE", "PACKAGE-SEED-0001", "PKG-RICE-0001", "system"),
+                new BarcodeToken("MANIFEST", "MANIFEST-SEED-0001", "SL-AG-104", "system"));
+        }
+
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -174,4 +210,147 @@ public static class AgriPodDbInitializer
         new AppUser("M&E Officer", "me@agripod.local", "+23276000009", SystemRole.MonitoringEvaluationOfficer, "WESTERN"),
         new AppUser("Auditor", "audit@agripod.local", "+23276000004", SystemRole.Auditor, "WESTERN")
     ];
+
+    private static async Task EnsurePostFeatureTablesAsync(AgriPodDbContext db, CancellationToken cancellationToken)
+    {
+        var provider = db.Database.ProviderName ?? "";
+        if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                CREATE TABLE IF NOT EXISTS "SystemSettings" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_SystemSettings" PRIMARY KEY,
+                    "OtpExpiryMinutes" INTEGER NOT NULL,
+                    "DefaultGeofenceRadiusMeters" TEXT NOT NULL,
+                    "DeviceBindingRequired" INTEGER NOT NULL,
+                    "BiometricEvidenceRequired" INTEGER NOT NULL,
+                    "OfflineSyncEnabled" INTEGER NOT NULL,
+                    "SensitiveDataPolicy" TEXT NOT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL,
+                    "RowVersion" INTEGER NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS "DeviceBindings" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_DeviceBindings" PRIMARY KEY,
+                    "DeviceId" TEXT NOT NULL,
+                    "DistrictCode" TEXT NOT NULL,
+                    "BoundUserEmail" TEXT NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "BoundAt" TEXT NOT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL,
+                    "RowVersion" INTEGER NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS "BarcodeTokens" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_BarcodeTokens" PRIMARY KEY,
+                    "TokenType" TEXT NOT NULL,
+                    "Token" TEXT NOT NULL,
+                    "EntityReference" TEXT NOT NULL,
+                    "GeneratedByUserId" TEXT NOT NULL,
+                    "GeneratedAt" TEXT NOT NULL,
+                    "IsRevoked" INTEGER NOT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL,
+                    "RowVersion" INTEGER NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS "StockReconciliations" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_StockReconciliations" PRIMARY KEY,
+                    "CampaignId" TEXT NOT NULL,
+                    "CampaignName" TEXT NOT NULL,
+                    "LoadedQuantity" TEXT NOT NULL,
+                    "DeliveredQuantity" TEXT NOT NULL,
+                    "ReturnedQuantity" TEXT NOT NULL,
+                    "DiscrepancyQuantity" TEXT NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "SupervisorUserId" TEXT NOT NULL,
+                    "Notes" TEXT NOT NULL,
+                    "SubmittedAt" TEXT NOT NULL,
+                    "ReviewStatus" TEXT NOT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL,
+                    "RowVersion" INTEGER NOT NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_DeviceBindings_DeviceId" ON "DeviceBindings" ("DeviceId");
+                CREATE INDEX IF NOT EXISTS "IX_DeviceBindings_BoundUserEmail_Status" ON "DeviceBindings" ("BoundUserEmail", "Status");
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_BarcodeTokens_Token" ON "BarcodeTokens" ("Token");
+                CREATE INDEX IF NOT EXISTS "IX_BarcodeTokens_TokenType_EntityReference" ON "BarcodeTokens" ("TokenType", "EntityReference");
+                CREATE INDEX IF NOT EXISTS "IX_StockReconciliations_CampaignId_SubmittedAt" ON "StockReconciliations" ("CampaignId", "SubmittedAt");
+                """,
+                [],
+                cancellationToken);
+            return;
+        }
+
+        if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                IF OBJECT_ID(N'[SystemSettings]', N'U') IS NULL
+                CREATE TABLE [SystemSettings] (
+                    [Id] uniqueidentifier NOT NULL CONSTRAINT [PK_SystemSettings] PRIMARY KEY,
+                    [OtpExpiryMinutes] int NOT NULL,
+                    [DefaultGeofenceRadiusMeters] decimal(10,2) NOT NULL,
+                    [DeviceBindingRequired] bit NOT NULL,
+                    [BiometricEvidenceRequired] bit NOT NULL,
+                    [OfflineSyncEnabled] bit NOT NULL,
+                    [SensitiveDataPolicy] nvarchar(800) NOT NULL,
+                    [CreatedAt] datetimeoffset NOT NULL,
+                    [UpdatedAt] datetimeoffset NOT NULL,
+                    [RowVersion] bigint NOT NULL
+                );
+
+                IF OBJECT_ID(N'[DeviceBindings]', N'U') IS NULL
+                CREATE TABLE [DeviceBindings] (
+                    [Id] uniqueidentifier NOT NULL CONSTRAINT [PK_DeviceBindings] PRIMARY KEY,
+                    [DeviceId] nvarchar(96) NOT NULL,
+                    [DistrictCode] nvarchar(24) NOT NULL,
+                    [BoundUserEmail] nvarchar(160) NOT NULL,
+                    [Status] nvarchar(40) NOT NULL,
+                    [BoundAt] datetimeoffset NOT NULL,
+                    [CreatedAt] datetimeoffset NOT NULL,
+                    [UpdatedAt] datetimeoffset NOT NULL,
+                    [RowVersion] bigint NOT NULL
+                );
+
+                IF OBJECT_ID(N'[BarcodeTokens]', N'U') IS NULL
+                CREATE TABLE [BarcodeTokens] (
+                    [Id] uniqueidentifier NOT NULL CONSTRAINT [PK_BarcodeTokens] PRIMARY KEY,
+                    [TokenType] nvarchar(32) NOT NULL,
+                    [Token] nvarchar(128) NOT NULL,
+                    [EntityReference] nvarchar(160) NOT NULL,
+                    [GeneratedByUserId] nvarchar(96) NOT NULL,
+                    [GeneratedAt] datetimeoffset NOT NULL,
+                    [IsRevoked] bit NOT NULL,
+                    [CreatedAt] datetimeoffset NOT NULL,
+                    [UpdatedAt] datetimeoffset NOT NULL,
+                    [RowVersion] bigint NOT NULL
+                );
+
+                IF OBJECT_ID(N'[StockReconciliations]', N'U') IS NULL
+                CREATE TABLE [StockReconciliations] (
+                    [Id] uniqueidentifier NOT NULL CONSTRAINT [PK_StockReconciliations] PRIMARY KEY,
+                    [CampaignId] uniqueidentifier NOT NULL,
+                    [CampaignName] nvarchar(160) NOT NULL,
+                    [LoadedQuantity] decimal(18,3) NOT NULL,
+                    [DeliveredQuantity] decimal(18,3) NOT NULL,
+                    [ReturnedQuantity] decimal(18,3) NOT NULL,
+                    [DiscrepancyQuantity] decimal(18,3) NOT NULL,
+                    [Status] nvarchar(40) NOT NULL,
+                    [SupervisorUserId] nvarchar(96) NOT NULL,
+                    [Notes] nvarchar(800) NOT NULL,
+                    [SubmittedAt] datetimeoffset NOT NULL,
+                    [ReviewStatus] nvarchar(40) NOT NULL,
+                    [CreatedAt] datetimeoffset NOT NULL,
+                    [UpdatedAt] datetimeoffset NOT NULL,
+                    [RowVersion] bigint NOT NULL
+                );
+                """,
+                [],
+                cancellationToken);
+        }
+    }
 }

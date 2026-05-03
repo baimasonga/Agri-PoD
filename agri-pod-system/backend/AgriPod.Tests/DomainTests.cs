@@ -1,6 +1,8 @@
 using AgriPod.Domain.Deliveries;
 using AgriPod.Domain.Campaigns;
 using AgriPod.Domain.Inventory;
+using AgriPod.Domain.Administration;
+using AgriPod.Domain.Traceability;
 
 namespace AgriPod.Tests;
 
@@ -34,5 +36,44 @@ public sealed class DomainTests
 
         Assert.False(allocation.CanDeliver(11m));
         Assert.Throws<InvalidOperationException>(() => allocation.MarkDelivered(11m));
+    }
+
+    [Fact]
+    public void Device_binding_normalizes_device_district_and_email()
+    {
+        var binding = new DeviceBinding(" field-001 ", " bombali ", " Field@AgriPod.Local ");
+
+        Assert.Equal("FIELD-001", binding.DeviceId);
+        Assert.Equal("BOMBALI", binding.DistrictCode);
+        Assert.Equal("field@agripod.local", binding.BoundUserEmail);
+        Assert.Equal("Bound", binding.Status);
+    }
+
+    [Fact]
+    public void Barcode_token_normalizes_traceability_identifier()
+    {
+        var token = new BarcodeToken(" package ", " package-abc123 ", " PKG-RICE-0001 ", "warehouse@agripod.local");
+
+        Assert.Equal("PACKAGE", token.TokenType);
+        Assert.Equal("PACKAGE-ABC123", token.Token);
+        Assert.Equal("PKG-RICE-0001", token.EntityReference);
+        Assert.False(token.IsRevoked);
+    }
+
+    [Fact]
+    public void Stock_reconciliation_detects_discrepancy_and_starts_review()
+    {
+        var reconciliation = new StockReconciliation(
+            Guid.NewGuid(),
+            "Wet season seed support",
+            100m,
+            80m,
+            10m,
+            "coordinator@agripod.local",
+            "Returned to warehouse.");
+
+        Assert.Equal(10m, reconciliation.DiscrepancyQuantity);
+        Assert.Equal("Discrepancy", reconciliation.Status);
+        Assert.Equal("PendingReview", reconciliation.ReviewStatus);
     }
 }

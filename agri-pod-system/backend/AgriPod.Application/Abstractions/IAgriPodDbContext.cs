@@ -8,6 +8,7 @@ using AgriPod.Domain.Fleet;
 using AgriPod.Domain.Inventory;
 using AgriPod.Domain.Procurement;
 using AgriPod.Domain.Security;
+using AgriPod.Domain.Traceability;
 using Microsoft.EntityFrameworkCore;
 
 namespace AgriPod.Application.Abstractions;
@@ -22,6 +23,8 @@ public interface IAgriPodDbContext
     DbSet<AppUser> AppUsers { get; }
     DbSet<District> Districts { get; }
     DbSet<Chiefdom> Chiefdoms { get; }
+    DbSet<SystemSetting> SystemSettings { get; }
+    DbSet<DeviceBinding> DeviceBindings { get; }
     DbSet<Farmer> Farmers { get; }
     DbSet<Supplier> Suppliers { get; }
     DbSet<PurchaseOrder> PurchaseOrders { get; }
@@ -32,5 +35,7 @@ public interface IAgriPodDbContext
     DbSet<DistributionSession> DistributionSessions { get; }
     DbSet<ExceptionCase> ExceptionCases { get; }
     DbSet<AuditLog> AuditLogs { get; }
+    DbSet<BarcodeToken> BarcodeTokens { get; }
+    DbSet<StockReconciliation> StockReconciliations { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

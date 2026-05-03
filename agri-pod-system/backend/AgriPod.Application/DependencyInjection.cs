@@ -1,3 +1,4 @@
+using AgriPod.Application.Administration;
 using AgriPod.Application.Campaigns;
 using AgriPod.Application.Compliance;
 using AgriPod.Application.Deliveries;
@@ -9,6 +10,7 @@ using AgriPod.Application.Procurement;
 using AgriPod.Application.Reports;
 using AgriPod.Application.Security;
 using AgriPod.Application.Sync;
+using AgriPod.Application.Traceability;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgriPod.Application;
@@ -29,6 +31,8 @@ public static class DependencyInjection
         services.AddScoped<DispatchService>();
         services.AddScoped<ComplianceService>();
         services.AddScoped<ReportingService>();
+        services.AddScoped<AdministrationService>();
+        services.AddScoped<TraceabilityService>();
         return services;
     }
 }
