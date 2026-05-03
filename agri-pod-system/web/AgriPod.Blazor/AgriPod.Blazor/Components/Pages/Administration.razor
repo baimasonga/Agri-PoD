@@ -4,165 +4,150 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Administration</PageTitle>
+<PageTitle>Obsidian Field | System Command</PageTitle>
 
-<section class="page-section">
-    <div>
-        <h1>Administration</h1>
-        <p>Manage districts, chiefdoms, security controls, device binding, and operational settings.</p>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">System Command</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">National Infrastructure & Global Security Protocol Management</p>
+</div>
+
+<div class="metric-row">
+    <div class="hud-panel metric-widget" style="border-color: var(--primary);">
+        <span class="metric-label">Operational Districts</span>
+        <div class="metric-value">@_districts.Count</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--primary); font-weight: 800;">BOUNDARIES: VALIDATED</div>
     </div>
-    <div class="status-strip">
-        <span>JWT roles</span>
-        <span>Device binding</span>
-        <span>Audit trail</span>
+    
+    <div class="hud-panel metric-widget" style="border-color: var(--secondary);">
+        <span class="metric-label">Approved Devices</span>
+        <div class="metric-value" style="color: var(--secondary);">@_deviceBindings.Count</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--secondary); font-weight: 800;">OFFLINE NODES: SECURE</div>
     </div>
-</section>
 
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <section class="notice">@_message</section>
-}
+    <div class="hud-panel metric-widget" style="border-color: var(--accent);">
+        <span class="metric-label">MFA Security Gate</span>
+        <div class="metric-value" style="color: var(--accent);">@_settings.OtpExpiryMinutes M</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--accent); font-weight: 800;">OTP TIMEOUT: ACTIVE</div>
+    </div>
+</div>
 
-<section class="metric-grid">
-    <div class="metric-card"><span>Districts</span><strong>@_districts.Count</strong><p>operational boundaries configured</p></div>
-    <div class="metric-card"><span>Chiefdoms</span><strong>@_chiefdoms.Count</strong><p>local registration areas</p></div>
-    <div class="metric-card"><span>Bound devices</span><strong>@_deviceBindings.Count</strong><p>approved offline mobile nodes</p></div>
-    <div class="metric-card"><span>OTP expiry</span><strong>@_settings.OtpExpiryMinutes</strong><p>minutes before verification timeout</p></div>
-</section>
-
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header">
-            <div>
-                <h2>District and chiefdom register</h2>
-                <p>These records drive farmer registration, district review, campaign planning, and reporting.</p>
-            </div>
-            <button type="button" @onclick="Load">Refresh</button>
+<div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem;">
+    <div class="hud-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 class="hud-title" style="margin: 0; font-size: 1.2rem;">Infrastructure Map</h2>
+            <button @onclick="Load">Sync Core</button>
         </div>
+
+        <div class="tech-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>DISTRICT CODE</th>
+                        <th>DESIGNATION</th>
+                        <th>CHIEFDOM NODES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var district in _districts)
+                    {
+                        <tr>
+                            <td style="font-weight: 900; color: var(--primary);">@district.Code</td>
+                            <td style="font-weight: 700;">@district.Name</td>
+                            <td>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    @foreach (var chiefdom in _chiefdoms.Where(x => x.DistrictCode == district.Code))
+                                    {
+                                        <span style="font-size: 0.6rem; font-weight: 900; border: 1px solid var(--border); padding: 0.2rem 0.4rem; color: var(--muted);">@chiefdom.Name.ToUpper()</span>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="hud-panel" style="background: rgba(16, 185, 129, 0.02); border-color: rgba(16, 185, 129, 0.2);">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--primary);">Initialize District</h2>
+        <div class="hud-input-group">
+            <label>REGION CODE</label>
+            <input placeholder="E.G. BO-CENTER" />
+        </div>
+        <div class="hud-input-group">
+            <label>DISPLAY NAME</label>
+            <input placeholder="E.G. Bo District" />
+        </div>
+        <button style="width: 100%; height: 3.5rem;">Commit Infrastructure</button>
+        
+        <div style="margin-top: 3rem;">
+            <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--accent);">Security Override</h2>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800;">
+                    <span>DEVICE BINDING</span>
+                    <span style="color: var(--primary);">REQUIRED</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800;">
+                    <span>BIOMETRIC GATE</span>
+                    <span style="color: var(--primary);">ENFORCED</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800;">
+                    <span>OFFLINE CACHE</span>
+                    <span style="color: var(--primary);">ENCRYPTED</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="hud-panel" style="margin-top: 3rem;">
+    <h2 class="hud-title" style="font-size: 1.2rem; margin-bottom: 2rem;">Device Authentication Register</h2>
+    <div class="tech-table-container">
         <table>
-            <thead><tr><th>District code</th><th>District name</th><th>Chiefdoms</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>DEVICE ID</th>
+                    <th>LINKED SUBJECT</th>
+                    <th>ASSIGNED ZONE</th>
+                    <th>STATUS</th>
+                    <th>TIMESTAMP</th>
+                </tr>
+            </thead>
             <tbody>
-                @foreach (var district in _districts)
+                @foreach (var binding in _deviceBindings)
                 {
                     <tr>
-                        <td>@district.Code</td>
-                        <td>@district.Name</td>
-                        <td>@string.Join(", ", _chiefdoms.Where(x => x.DistrictCode == district.Code).Select(x => x.Name).DefaultIfEmpty("None configured"))</td>
+                        <td style="font-weight: 900; color: var(--secondary);">@binding.DeviceId</td>
+                        <td style="font-weight: 700;">@binding.BoundUserEmail</td>
+                        <td style="color: var(--muted);">@binding.DistrictCode</td>
+                        <td>
+                            <span class="dot" style="color: var(--primary); background: currentColor;"></span>
+                            <span style="font-size: 0.7rem; font-weight: 900; color: var(--primary);">ACTIVE</span>
+                        </td>
+                        <td style="font-family: monospace; font-size: 0.75rem; color: var(--muted);">@binding.BoundAt.ToString("yyyy-MM-dd HH:mm")</td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
-    <div class="panel">
-        <h2>Create district</h2>
-        <form class="form-stack" method="post" action="/portal-actions/admin/districts/create">
-            <label>Code <input name="code" value="KAILAHUN" /></label>
-            <label>Name <input name="name" value="Kailahun" /></label>
-            <button type="submit">Create district</button>
-        </form>
-    </div>
-</section>
-
-<section class="workbench">
-    <div class="panel">
-        <h2>Create chiefdom</h2>
-        <form class="form-stack" method="post" action="/portal-actions/admin/chiefdoms/create">
-            <label>
-                District
-                <select name="districtCode">
-                    @foreach (var district in _districts)
-                    {
-                        <option value="@district.Code">@district.Name</option>
-                    }
-                </select>
-            </label>
-            <label>Name <input name="name" value="Luawa" /></label>
-            <button type="submit">Create chiefdom</button>
-        </form>
-    </div>
-    <div class="panel">
-        <h2>Bind field device</h2>
-        <form class="form-stack" method="post" action="/portal-actions/admin/devices/bind">
-            <label>Device ID <input name="deviceId" value="@($"FIELD-{Random.Shared.Next(1000,9999)}")" /></label>
-            <label>
-                District
-                <select name="districtCode">
-                    @foreach (var district in _districts)
-                    {
-                        <option value="@district.Code">@district.Name</option>
-                    }
-                </select>
-            </label>
-            <label>User email <input name="boundUserEmail" value="field@agripod.local" /></label>
-            <button type="submit">Bind device</button>
-        </form>
-    </div>
-</section>
-
-<section class="panel">
-    <div class="panel-header compact">
-        <h2>Security posture</h2>
-        <span class="state ok">Controls active</span>
-    </div>
-    <div class="check-list">
-        <span>Device binding required: @_settings.DeviceBindingRequired</span>
-        <span>Biometric evidence required: @_settings.BiometricEvidenceRequired</span>
-        <span>Offline sync enabled: @_settings.OfflineSyncEnabled</span>
-        <span>@_settings.SensitiveDataPolicy</span>
-    </div>
-</section>
-
-<section class="panel">
-    <div class="panel-header compact">
-        <h2>Device binding register</h2>
-        <span class="state sync">District/offline control</span>
-    </div>
-    <table>
-        <thead><tr><th>Device</th><th>User</th><th>District</th><th>Status</th><th>Bound at</th></tr></thead>
-        <tbody>
-            @foreach (var binding in _deviceBindings)
-            {
-                <tr>
-                    <td>@binding.DeviceId</td>
-                    <td>@binding.BoundUserEmail</td>
-                    <td>@binding.DistrictCode</td>
-                    <td><span class="state ok">@binding.Status</span></td>
-                    <td>@binding.BoundAt.ToLocalTime().ToString("g")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</section>
+</div>
 
 @code {
     private readonly List<DistrictDto> _districts = [];
     private readonly List<ChiefdomDto> _chiefdoms = [];
     private readonly List<DeviceBindingDto> _deviceBindings = [];
-    private SystemSettingsDto _settings = new(10, 150m, true, true, true, "");
+    private SystemSettingsDto _settings = new(10, 150m, true, true, true, "STRICT_ENFORCEMENT");
     private string? _message;
 
-    protected override async Task OnInitializedAsync()
-    {
-        _message = QueryMessage();
-        await Load();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
-        _districts.Clear();
-        _chiefdoms.Clear();
-        _deviceBindings.Clear();
+        _districts.Clear(); _chiefdoms.Clear(); _deviceBindings.Clear();
         _districts.AddRange(await client.GetFromJsonAsync<List<DistrictDto>>("/api/v1/administration/districts") ?? []);
         _chiefdoms.AddRange(await client.GetFromJsonAsync<List<ChiefdomDto>>("/api/v1/administration/chiefdoms") ?? []);
         _deviceBindings.AddRange(await client.GetFromJsonAsync<List<DeviceBindingDto>>("/api/v1/administration/devices") ?? []);
         _settings = await client.GetFromJsonAsync<SystemSettingsDto>("/api/v1/administration/settings") ?? _settings;
-    }
-
-    private string? QueryMessage()
-    {
-        var query = new Uri(Navigation.Uri).Query;
-        const string key = "?message=";
-        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

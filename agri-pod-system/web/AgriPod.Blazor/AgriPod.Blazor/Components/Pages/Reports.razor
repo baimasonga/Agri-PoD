@@ -4,109 +4,103 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Reports</PageTitle>
+<PageTitle>Obsidian Field | Analytics</PageTitle>
 
-<section class="page-section">
-    <h1>Reports</h1>
-    <p>Monitoring and Evaluation officers can review farmer distribution, stock balances, vehicle tracking, PoD verification, and exceptions.</p>
-</section>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Analytics Core</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">Monitoring & Evaluation | National Performance Metrology</p>
+</div>
 
-<section class="metric-grid">
-    <div class="metric-card"><span>Registered farmers</span><strong>@_summary.FarmersRegistered</strong><p>captured by portal and mobile</p></div>
-    <div class="metric-card"><span>Approved farmers</span><strong>@_summary.FarmersApproved</strong><p>eligible for allocations</p></div>
-    <div class="metric-card"><span>Campaigns active</span><strong>@_summary.CampaignsActive</strong><p>approved or active</p></div>
-    <div class="metric-card warning"><span>Open exceptions</span><strong>@_summary.OpenExceptions</strong><p>awaiting supervisor action</p></div>
-</section>
+<div class="metric-row">
+    <div class="hud-panel metric-widget">
+        <span class="metric-label">Approved Beneficiaries</span>
+        <div class="metric-value">@_summary.FarmersApproved</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--primary); font-weight: 800;">REGISTRY: VERIFIED</div>
+    </div>
+    
+    <div class="hud-panel metric-widget" style="border-color: var(--secondary);">
+        <span class="metric-label">Closed Distributions</span>
+        <div class="metric-value" style="color: var(--secondary);">@_summary.DeliveriesCompleted</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--secondary); font-weight: 800;">POD: CONFIRMED</div>
+    </div>
 
-<section class="charts-section" style="display: flex; gap: 2rem; margin: 2rem 0; height: 300px;">
-    <div class="panel" style="flex: 1; display: flex; flex-direction: column;">
-        <h2>Distribution progress</h2>
+    <div class="hud-panel metric-widget" style="border-color: var(--accent);">
+        <span class="metric-label">Pending Syncs</span>
+        <div class="metric-value" style="color: var(--accent);">@_summary.OfflineMutationsPending</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--accent); font-weight: 800;">MOBILE: DATA QUEUED</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+    <div class="hud-panel" style="height: 400px; display: flex; flex-direction: column;">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem;">Distribution Velocity</h2>
         <div style="flex: 1; position: relative;">
             <canvas id="progressChart"></canvas>
         </div>
     </div>
-    <div class="panel" style="flex: 1; display: flex; flex-direction: column;">
-        <h2>System health</h2>
+    <div class="hud-panel" style="height: 400px; display: flex; flex-direction: column;">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--accent);">Integrity Health</h2>
         <div style="flex: 1; position: relative;">
             <canvas id="healthChart"></canvas>
         </div>
     </div>
-</section>
+</div>
 
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header">
-            <div>
-                <h2>Operational report catalogue</h2>
-                <p>Reports are assembled from the live API summary and workflow tables.</p>
+<div class="hud-panel">
+    <h2 class="hud-title" style="font-size: 1.2rem; margin-bottom: 3rem;">Operational Intelligence Catalogue</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        @foreach (var report in ReportCatalogue)
+        {
+            <div style="padding: 1.5rem; border: 1px solid var(--border); background: rgba(255,255,255,0.02);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 class="hud-title" style="font-size: 0.75rem; margin: 0; color: var(--primary);">@report.Name</h3>
+                    <span style="font-size: 0.6rem; font-weight: 900; color: var(--muted);">@report.Status</span>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--muted); margin: 0;">@report.Description</p>
+                <button class="btn-secondary" style="width: 100%; margin-top: 1.5rem; height: 2.5rem; font-size: 0.6rem;">Generate Uplink</button>
             </div>
-            <button type="button" @onclick="Load">Refresh</button>
-        </div>
-        <div class="report-grid">
-            @foreach (var report in ReportCatalogue)
-            {
-                <article class="report-tile">
-                    <div>
-                        <h3>@report.Name</h3>
-                        <p>@report.Description</p>
-                    </div>
-                    <span class="state @report.StateClass">@report.Status</span>
-                </article>
-            }
-        </div>
+        }
     </div>
-    <div class="panel">
-        <h2>Control totals</h2>
-        <div class="node-list">
-            <div class="node-row"><span class="node-dot ok"></span><div><strong>@_summary.DeliveriesCompleted completed deliveries</strong><small>PoD records with delivery status closed</small></div></div>
-            <div class="node-row"><span class="node-dot sync"></span><div><strong>@_summary.OfflineMutationsPending pending offline mutations</strong><small>mobile transactions waiting for validation</small></div></div>
-            <div class="node-row"><span class="node-dot warn"></span><div><strong>@_summary.OpenExceptions open exceptions</strong><small>supervisor review queue</small></div></div>
-        </div>
-    </div>
-</section>
+</div>
 
 @code {
     private ReportSummaryDto _summary = new(0, 0, 0, 0, 0, 0);
     private static readonly ReportRow[] ReportCatalogue =
     [
-        new("Farmer distribution", "Registration, approval, district, chiefdom, and value-chain coverage.", "Ready", "ok"),
-        new("Stock balance", "Warehouse lots, available quantity, expiry, and package traceability.", "Ready", "ok"),
-        new("Vehicle tracking", "Dispatch manifests, driver assignments, route pings, and stop review.", "Ready", "ok"),
-        new("PoD verification", "Barcode, OTP, GPS, facial capture, and quantity confirmation status.", "Ready", "ok"),
-        new("Exception report", "Duplicate delivery, GPS mismatch, OTP failure, and stock discrepancy cases.", "Action", "warn"),
-        new("Audit report", "Actor, entity, timestamp, and workflow event trail for compliance review.", "Ready", "sync")
+        new("Farmer coverage", "Geospatial distribution across districts and chiefdoms.", "Ready"),
+        new("Logistics trail", "Batch traceability and warehouse depletion metrics.", "Ready"),
+        new("Biometric audit", "Facial recognition match rates and MFA bypass logs.", "Ready"),
+        new("Geofence analysis", "Distribution mapping and boundary breach exceptions.", "Ready"),
+        new("Sync latency", "Time-to-cloud metrics for offline field transactions.", "Ready"),
+        new("Audit velocity", "Actor-event frequency and system throughput analysis.", "Ready")
     ];
 
     protected override async Task OnInitializedAsync() => await Load();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await RenderCharts();
-        }
+        if (firstRender) { await RenderCharts(); }
     }
 
     private async Task Load()
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
         _summary = await client.GetFromJsonAsync<ReportSummaryDto>("/api/v1/reports/summary") ?? new(0, 0, 0, 0, 0, 0);
-        if (JSRuntime is not null)
-        {
-            await RenderCharts();
-        }
+        await RenderCharts();
     }
 
     private async Task RenderCharts()
     {
-        var progressData = new[] { _summary.FarmersApproved, _summary.DeliveriesCompleted, _summary.CampaignsActive };
-        var progressLabels = new[] { "Approved Farmers", "Completed Deliveries", "Active Campaigns" };
-        await JSRuntime.InvokeVoidAsync("agriPodCharts.renderDoughnut", "progressChart", progressData, progressLabels);
+        try {
+            var progressData = new[] { _summary.FarmersApproved, _summary.DeliveriesCompleted, _summary.CampaignsActive };
+            var progressLabels = new[] { "Approved", "Delivered", "Campaigns" };
+            await JSRuntime.InvokeVoidAsync("agriPodCharts.renderDoughnut", "progressChart", progressData, progressLabels);
 
-        var healthData = new[] { _summary.OpenExceptions, _summary.OfflineMutationsPending };
-        var healthLabels = new[] { "Open Exceptions", "Pending Offline Syncs" };
-        await JSRuntime.InvokeVoidAsync("agriPodCharts.renderBar", "healthChart", healthData, healthLabels);
+            var healthData = new[] { _summary.OpenExceptions, _summary.OfflineMutationsPending };
+            var healthLabels = new[] { "Exceptions", "Pending Syncs" };
+            await JSRuntime.InvokeVoidAsync("agriPodCharts.renderBar", "healthChart", healthData, healthLabels);
+        } catch { }
     }
 
-    private sealed record ReportRow(string Name, string Description, string Status, string StateClass);
+    private sealed record ReportRow(string Name, string Description, string Status);
 }

@@ -4,39 +4,52 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Campaigns</PageTitle>
+<PageTitle>Obsidian Field | Ops Command</PageTitle>
 
-<section class="page-section">
-    <h1>Campaign planning</h1>
-    <p>Project managers select districts, eligible farmers, packages, vehicles, field officers, and GPS delivery boundaries.</p>
-</section>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Ops Command</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">National Distribution Campaigns & Resource Allocation Hub</p>
+</div>
 
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <section class="notice">@_message</section>
-}
+<div class="hud-panel" style="margin-bottom: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 class="hud-title" style="margin: 0; font-size: 1.2rem;">Deployment Board</h2>
+        <button @onclick="Load">Refresh Uplink</button>
+    </div>
 
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header"><h2>Live campaign board</h2><button type="button" @onclick="Load">Refresh</button></div>
+    <div class="tech-table-container">
         <table>
-            <thead><tr><th>Campaign</th><th>District</th><th>Value chain</th><th>Window</th><th>Status</th><th>Action</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>CAMPAIGN</th>
+                    <th>ZONE</th>
+                    <th>CHAIN</th>
+                    <th>TIMEFRAME</th>
+                    <th>STATUS</th>
+                    <th style="text-align: right;">ACTION</th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach (var campaign in _campaigns)
                 {
                     <tr>
-                        <td>@campaign.Name</td>
-                        <td>@campaign.DistrictCode</td>
-                        <td>@campaign.ValueChain</td>
-                        <td>@campaign.StartsOn.ToString("MMM dd") - @campaign.EndsOn.ToString("MMM dd")</td>
-                        <td><span class="state @StatusClass(campaign.Status)">@campaign.Status</span></td>
+                        <td style="font-weight: 900; color: var(--primary);">@campaign.Name.ToUpper()</td>
+                        <td style="font-weight: 700;">@campaign.DistrictCode</td>
                         <td>
-                            <div class="inline-actions">
+                             <span style="font-size: 0.6rem; font-weight: 900; border: 1px solid var(--secondary); padding: 0.2rem 0.4rem; color: var(--secondary);">@campaign.ValueChain.ToUpper()</span>
+                        </td>
+                        <td style="font-family: monospace; font-size: 0.75rem;">@campaign.StartsOn.ToString("MMM dd") - @campaign.EndsOn.ToString("MMM dd")</td>
+                        <td>
+                            <span class="dot" style="color: @(campaign.Status == "Approved" ? "var(--primary)" : "var(--accent)"); background: currentColor;"></span>
+                            <span style="font-size: 0.7rem; font-weight: 900; color: @(campaign.Status == "Approved" ? "var(--primary)" : "var(--accent)");">@campaign.Status.ToUpper()</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                                 @if (campaign.Status == "PendingApproval")
                                 {
-                                    <button type="button" @onclick="() => Approve(campaign.Id)">Approve</button>
+                                    <button style="padding: 0.4rem 1rem; font-size: 0.6rem;" @onclick="() => Approve(campaign.Id)">Approve</button>
                                 }
-                                <button class="secondary-button" type="button" @onclick="() => Allocate(campaign.Id)">Allocate</button>
+                                <button class="btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.6rem; border-color: var(--muted); color: var(--muted);" @onclick="() => Allocate(campaign.Id)">Allocate</button>
                             </div>
                         </td>
                     </tr>
@@ -44,29 +57,62 @@
             </tbody>
         </table>
     </div>
-    <div class="panel">
-        <h2>Create campaign</h2>
-        <div class="form-stack">
-            <label>Name <input @bind="_form.Name" /></label>
-            <label>District <input @bind="_form.DistrictCode" /></label>
-            <label>Value chain <input @bind="_form.ValueChain" /></label>
-            <button type="button" @onclick="CreateCampaign">Create campaign</button>
+</div>
+
+<div style="display: grid; grid-template-columns: 400px 1fr; gap: 2rem;">
+    <div class="hud-panel" style="background: rgba(59, 130, 246, 0.02); border-color: rgba(59, 130, 246, 0.2);">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--secondary);">Initialize Campaign</h2>
+        <div class="hud-input-group">
+            <label>OPERATION NAME</label>
+            <input @bind="_form.Name" />
+        </div>
+        <div class="hud-input-group">
+            <label>ZONE CODE</label>
+            <input @bind="_form.DistrictCode" />
+        </div>
+        <div class="hud-input-group">
+            <label>VALUE CHAIN</label>
+            <input @bind="_form.ValueChain" />
+        </div>
+        <button style="width: 100%; height: 3.5rem; border-color: var(--secondary); color: var(--secondary); box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1);" @onclick="CreateCampaign">Commit Operation</button>
+    </div>
+
+    <div class="hud-panel">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem;">Resource Allocations</h2>
+        <div class="tech-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>CAMPAIGN</th>
+                        <th>BENEFICIARY</th>
+                        <th>ITEM</th>
+                        <th>QUOTA</th>
+                        <th>RELEASED</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _allocationRows)
+                    {
+                        <tr>
+                            <td style="font-weight: 800; color: var(--secondary);">@row.Campaign</td>
+                            <td style="font-weight: 700;">@row.Farmer</td>
+                            <td>@row.Item</td>
+                            <td style="font-family: 'Syncopate', sans-serif; font-size: 0.7rem;">@row.Allocated</td>
+                            <td style="font-family: 'Syncopate', sans-serif; font-size: 0.7rem; color: var(--primary);">@row.Delivered</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
-</section>
+</div>
 
-<section class="panel">
-    <h2>Allocations</h2>
-    <table>
-        <thead><tr><th>Campaign</th><th>Farmer</th><th>Item</th><th>Allocated</th><th>Delivered</th></tr></thead>
-        <tbody>
-            @foreach (var row in _allocationRows)
-            {
-                <tr><td>@row.Campaign</td><td>@row.Farmer</td><td>@row.Item</td><td>@row.Allocated</td><td>@row.Delivered</td></tr>
-            }
-        </tbody>
-    </table>
-</section>
+@if (_message != null)
+{
+    <div style="position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 2rem; background: var(--surface); border: 1px solid var(--primary); color: var(--primary); font-size: 0.75rem; font-weight: 900; z-index: 2000;">
+        [SYSTEM MESSAGE]: @_message.ToUpper()
+    </div>
+}
 
 @code {
     private readonly List<CampaignDto> _campaigns = [];
@@ -76,11 +122,7 @@
     private string? _message;
     private CampaignForm _form = CampaignForm.Default();
 
-    protected override async Task OnInitializedAsync()
-    {
-        _message = QueryMessage();
-        await Load();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
@@ -99,68 +141,32 @@
 
     private async Task CreateCampaign()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("AgriPodApi");
-            var request = new CreateCampaignRequest(_form.Name, _form.DistrictCode, _form.ValueChain, DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today.AddDays(30)), 8.889m, -12.044m, 150m);
-            var response = await client.PostAsJsonAsync("/api/v1/campaigns", request);
-            if (!response.IsSuccessStatusCode)
-            {
-                _message = $"Create campaign failed: {response.StatusCode}";
-                return;
-            }
-
-            _message = $"Created campaign {_form.Name}.";
-            _form = CampaignForm.Default();
-            await Load();
-        }
-        catch (Exception ex)
-        {
-            _message = $"Create campaign failed: {ex.Message}";
-        }
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var request = new CreateCampaignRequest(_form.Name, _form.DistrictCode, _form.ValueChain, DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today.AddDays(30)), 8.889m, -12.044m, 150m);
+        var response = await client.PostAsJsonAsync("/api/v1/campaigns", request);
+        _message = response.IsSuccessStatusCode ? $"Operation {_form.Name} Initialized." : "Commit failed.";
+        await Load();
     }
 
     private async Task Approve(Guid id)
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("AgriPodApi");
-            var response = await client.PostAsync($"/api/v1/campaigns/{id}/approve", null);
-            _message = response.IsSuccessStatusCode ? "Campaign approved." : $"Approve failed: {response.StatusCode}";
-            await Load();
-        }
-        catch (Exception ex)
-        {
-            _message = $"Approve failed: {ex.Message}";
-        }
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        await client.PostAsync($"/api/v1/campaigns/{id}/approve", null);
+        await Load();
     }
 
     private async Task Allocate(Guid campaignId)
     {
         var farmer = _farmers.FirstOrDefault(x => x.Status == "Approved");
         var item = _items.FirstOrDefault();
-        if (farmer is null || item is null)
-        {
-            _message = "Need at least one approved farmer and inventory item.";
-            return;
-        }
-
-        try
-        {
-            var client = HttpClientFactory.CreateClient("AgriPodApi");
-            var response = await client.PostAsJsonAsync("/api/v1/campaigns/allocations", new AllocateFarmerRequest(campaignId, farmer.Id, item.Id, 50m));
-            _message = response.IsSuccessStatusCode ? $"Allocated {item.Name} to {farmer.FullName}." : $"Allocation failed: {response.StatusCode}";
-            await Load();
-        }
-        catch (Exception ex)
-        {
-            _message = $"Allocation failed: {ex.Message}";
-        }
+        if (farmer is null || item is null) { _message = "Insufficient Registry/Logistics Data."; return; }
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        await client.PostAsJsonAsync("/api/v1/campaigns/allocations", new AllocateFarmerRequest(campaignId, farmer.Id, item.Id, 50m));
+        await Load();
     }
 
-    private string FarmerName(Guid id) => _farmers.FirstOrDefault(x => x.Id == id)?.FullName ?? id.ToString("N")[..8];
-    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
-    private static string StatusClass(string status) => status == "Approved" ? "ok" : status == "PendingApproval" ? "warn" : "sync";
+    private string FarmerName(Guid id) => _farmers.FirstOrDefault(x => x.Id == id)?.FullName ?? "UNKNOWN";
+    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? "UNKNOWN";
 
     private sealed record AllocationRow(string Campaign, string Farmer, string Item, decimal Allocated, decimal Delivered);
 
@@ -169,13 +175,6 @@
         public string Name { get; set; } = "";
         public string DistrictCode { get; set; } = "";
         public string ValueChain { get; set; } = "";
-        public static CampaignForm Default() => new() { Name = $"Campaign {Random.Shared.Next(100,999)}", DistrictCode = "BOMBALI", ValueChain = "Rice" };
-    }
-
-    private string? QueryMessage()
-    {
-        var query = new Uri(Navigation.Uri).Query;
-        const string key = "?message=";
-        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
+        public static CampaignForm Default() => new() { Name = $"OP-{(char)Random.Shared.Next(65,91)}-{Random.Shared.Next(100,999)}", DistrictCode = "BOMBALI", ValueChain = "RICE" };
     }
 }
