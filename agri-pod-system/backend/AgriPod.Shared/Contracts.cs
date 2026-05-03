@@ -31,7 +31,15 @@ public sealed record DeliveryDto(
 
 public sealed record DeliveryLineDto(Guid InventoryItemId, decimal Quantity, string? Barcode);
 
-public sealed record CompleteDeliveryRequest(decimal Latitude, decimal Longitude, string CapturedByUserId, string? BiometricReference);
+public sealed record CompleteDeliveryRequest(
+    decimal Latitude,
+    decimal Longitude,
+    string CapturedByUserId,
+    string? BiometricReference,
+    DateTimeOffset Timestamp,
+    string? SignatureReference,
+    string? PhotoEvidenceReference,
+    string OfflineTransactionId);
 
 public sealed record SendOtpRequest(string RecipientPhone, string Channel = "sms");
 

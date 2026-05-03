@@ -57,7 +57,15 @@ public sealed class DeliveryService(IAgriPodDbContext db)
             return null;
         }
 
-        delivery.MarkDelivered(request.Latitude, request.Longitude, request.CapturedByUserId, request.BiometricReference);
+        delivery.MarkDelivered(
+            request.Latitude,
+            request.Longitude,
+            request.CapturedByUserId,
+            request.BiometricReference,
+            request.Timestamp,
+            request.SignatureReference,
+            request.PhotoEvidenceReference,
+            request.OfflineTransactionId);
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(delivery);
     }

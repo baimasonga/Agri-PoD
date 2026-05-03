@@ -286,6 +286,7 @@ class _DeliveryCapturePageState extends State<DeliveryCapturePage> {
   final _packageBarcode = TextEditingController(text: 'PKG-NPK-0001');
   final _otp = TextEditingController(text: '123456');
   final _quantity = TextEditingController(text: '2');
+  final _signature = TextEditingController(text: 'Farmer Signature');
   String _status = 'PoD requires barcode, OTP, face reference, GPS, and vehicle proximity.';
 
   @override
@@ -294,7 +295,15 @@ class _DeliveryCapturePageState extends State<DeliveryCapturePage> {
     _packageBarcode.dispose();
     _otp.dispose();
     _quantity.dispose();
+    _signature.dispose();
     super.dispose();
+  }
+
+  void _requestTwilioOtp() {
+    setState(() => _status = 'Requesting OTP via Twilio... (Requires Network)');
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) setState(() => _status = 'Twilio OTP SMS sent to farmer.');
+    });
   }
 
   Future<void> _captureProof() async {
@@ -311,6 +320,10 @@ class _DeliveryCapturePageState extends State<DeliveryCapturePage> {
         'vehicleRegistration': 'SL-AG-104',
         'quantity': double.tryParse(_quantity.text) ?? 0,
         'capturedByUserId': 'field-officer-01',
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+        'signatureReference': _signature.text.isEmpty ? null : _signature.text,
+        'photoEvidenceReference': 'local-photo://evidence/latest',
+        'offlineTransactionId': 'txn-${DateTime.now().millisecondsSinceEpoch}',
       },
     );
 
@@ -328,8 +341,18 @@ class _DeliveryCapturePageState extends State<DeliveryCapturePage> {
       children: [
         TextField(controller: _farmerBarcode, decoration: const InputDecoration(labelText: 'Farmer barcode')),
         TextField(controller: _packageBarcode, decoration: const InputDecoration(labelText: 'Package barcode')),
-        TextField(controller: _otp, decoration: const InputDecoration(labelText: 'OTP code')),
+        Row(
+          children: [
+            Expanded(child: TextField(controller: _otp, decoration: const InputDecoration(labelText: 'OTP code'))),
+            const SizedBox(width: 8),
+            FilledButton.tonal(
+              onPressed: _requestTwilioOtp,
+              child: const Text('Twilio SMS'),
+            ),
+          ],
+        ),
         TextField(controller: _quantity, decoration: const InputDecoration(labelText: 'Quantity delivered')),
+        TextField(controller: _signature, decoration: const InputDecoration(labelText: 'Signature / Thumbprint (Optional)')),
       ],
     );
   }

@@ -19,7 +19,7 @@ public sealed class DomainTests
     {
         var delivery = new Delivery("pod-001", Guid.NewGuid(), "Recipient", "+23276000000", "Bo");
 
-        delivery.MarkDelivered(8.484m, -13.229m, "field-user", "face://capture/001");
+        delivery.MarkDelivered(8.484m, -13.229m, "field-user", "face://capture/001", DateTimeOffset.UtcNow, null, "photo://evidence/001", Guid.NewGuid().ToString());
 
         Assert.Equal(DeliveryStatus.Delivered, delivery.Status);
         Assert.Single(delivery.ProofEvents);
