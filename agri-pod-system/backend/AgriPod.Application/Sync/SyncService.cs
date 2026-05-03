@@ -2,6 +2,7 @@ using AgriPod.Shared;
 using AgriPod.Application.Abstractions;
 using AgriPod.Domain.Common;
 using AgriPod.Domain.Compliance;
+using AgriPod.Domain.Deliveries;
 using AgriPod.Domain.Dispatch;
 using AgriPod.Domain.Farmers;
 using System.Text.Json;
@@ -111,10 +112,20 @@ public sealed class SyncService(IAgriPodDbContext db)
         var campaign = allocation is not null ? await db.Campaigns.FirstOrDefaultAsync(x => x.Id == allocation.CampaignId, cancellationToken) : null;
         var deliveries = await db.Deliveries.Include(x => x.Lines).Include(x => x.ProofEvents).ToListAsync(cancellationToken);
         var delivery = deliveries.FirstOrDefault(x => x.Lines.Any(line => line.Barcode == payload.PackageBarcode));
+        var duplicatePackageDelivery = deliveries.Any(x =>
+            x.Id != delivery?.Id &&
+            x.Status == DeliveryStatus.Delivered &&
+            x.Lines.Any(line => line.Barcode == payload.PackageBarcode));
+        var deliveryLine = delivery?.Lines.FirstOrDefault(x => x.Barcode == payload.PackageBarcode);
 
         if (farmer is null) messages.Add("Farmer barcode not found.");
         if (allocation is null || !allocation.CanDeliver(payload.Quantity)) messages.Add("Allocation missing or quantity exceeds entitlement.");
+        if (farmer is not null && allocation is not null && allocation.FarmerId != farmer.Id) messages.Add("Farmer barcode does not match allocation.");
         if (delivery is null) messages.Add("Package barcode was not found on a delivery.");
+        if (delivery is not null && delivery.Status == DeliveryStatus.Delivered) messages.Add("Package has already been delivered.");
+        if (deliveryLine is not null && allocation is not null && deliveryLine.InventoryItemId != allocation.InventoryItemId) messages.Add("Package item does not match farmer allocation.");
+        if (deliveryLine is not null && deliveryLine.Quantity < payload.Quantity) messages.Add("Requested delivery quantity exceeds package quantity.");
+        if (duplicatePackageDelivery) messages.Add("Duplicate package delivery detected.");
         if (campaign is null) messages.Add("Campaign not found.");
         if (string.IsNullOrWhiteSpace(payload.OtpCode)) messages.Add("OTP is required.");
         if (string.IsNullOrWhiteSpace(payload.FaceCaptureReference)) messages.Add("Face capture reference is required.");
@@ -124,7 +135,8 @@ public sealed class SyncService(IAgriPodDbContext db)
             .Where(x => x.VehicleRegistration == payload.VehicleRegistration)
             .ToListAsync(cancellationToken);
 
-        if (vehiclePing.Count == 0) messages.Add("Vehicle GPS proximity could not be validated.");
+        var latestVehiclePing = vehiclePing.OrderByDescending(x => x.RecordedAt).FirstOrDefault();
+        if (latestVehiclePing is null) messages.Add("Vehicle GPS proximity could not be validated.");
 
         // 2. GPS Geofencing
         if (campaign is not null)
@@ -133,6 +145,20 @@ public sealed class SyncService(IAgriPodDbContext db)
             if (distance > (double)campaign.GpsRadiusMeters)
             {
                 messages.Add($"GPS Geofence Breach: Delivery attempt at {distance:F0}m from site (Max: {campaign.GpsRadiusMeters}m).");
+            }
+        }
+
+        if (latestVehiclePing is not null)
+        {
+            var vehicleDistance = GpsDistanceCalculator.CalculateDistance(payload.Latitude, payload.Longitude, latestVehiclePing.Latitude, latestVehiclePing.Longitude);
+            if (vehicleDistance > 250)
+            {
+                messages.Add($"Vehicle GPS proximity mismatch: vehicle is {vehicleDistance:F0}m from delivery capture point.");
+            }
+
+            if (payload.Timestamp - latestVehiclePing.RecordedAt > TimeSpan.FromHours(2))
+            {
+                messages.Add("Vehicle GPS ping is too old for PoD confirmation.");
             }
         }
 

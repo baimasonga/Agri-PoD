@@ -11,6 +11,7 @@ using AgriPod.Application.Reports;
 using AgriPod.Application.Security;
 using AgriPod.Application.Sync;
 using AgriPod.Application.Traceability;
+using AgriPod.Application.Workflows;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgriPod.Application;
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<ReportingService>();
         services.AddScoped<AdministrationService>();
         services.AddScoped<TraceabilityService>();
+        services.AddScoped<WorkflowInboxService>();
         return services;
     }
 }

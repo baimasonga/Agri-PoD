@@ -1,0 +1,85 @@
+@page "/workflows"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Workflow Inbox</PageTitle>
+
+<section class="page-section">
+    <div>
+        <h1>Workflow inbox</h1>
+        <p>Role-ready operating queues for approvals, dispatch loading, PoD exceptions, sync failures, and reconciliation review.</p>
+    </div>
+    <div class="status-strip">
+        <span>Approvals</span>
+        <span>Dispatch</span>
+        <span>Exceptions</span>
+    </div>
+</section>
+
+<section class="metric-grid">
+    <div class="metric-card"><span>Farmer approvals</span><strong>@_inbox.PendingFarmerApprovals</strong><p>awaiting district coordinator review</p></div>
+    <div class="metric-card warning"><span>Campaign approvals</span><strong>@_inbox.PendingCampaignApprovals</strong><p>awaiting project manager decision</p></div>
+    <div class="metric-card"><span>Dispatch loading</span><strong>@_inbox.DispatchesAwaitingLoad</strong><p>manifests not yet loaded</p></div>
+    <div class="metric-card warning"><span>Reconciliation reviews</span><strong>@_inbox.ReconciliationsPendingReview</strong><p>stock reports awaiting supervisor action</p></div>
+</section>
+
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header">
+            <div>
+                <h2>Priority tasks</h2>
+                <p>The most urgent work across operational modules, sorted by risk and age.</p>
+            </div>
+            <button type="button" @onclick="Load">Refresh</button>
+        </div>
+        <table>
+            <thead><tr><th>Queue</th><th>Task</th><th>Priority</th><th>Detail</th><th>Action</th></tr></thead>
+            <tbody>
+                @foreach (var task in _inbox.Tasks)
+                {
+                    <tr>
+                        <td>@task.Queue</td>
+                        <td>@task.Title</td>
+                        <td><span class="state @PriorityClass(task.Priority)">@task.Priority</span></td>
+                        <td>@task.Detail</td>
+                        <td><a class="button-link compact" href="@task.ActionUrl">Open</a></td>
+                    </tr>
+                }
+                @if (_inbox.Tasks.Count == 0)
+                {
+                    <tr><td colspan="5">No pending operational tasks.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Exception pressure</h2>
+        <div class="check-list">
+            <span>Open PoD exceptions: @_inbox.OpenPoDExceptions</span>
+            <span>Sync failures: @_inbox.SyncFailures</span>
+            <span>Tasks loaded: @_inbox.Tasks.Count</span>
+            <span>Use Compliance for investigation and closure.</span>
+        </div>
+        <a class="button-link" href="compliance">Review compliance</a>
+    </div>
+</section>
+
+@code {
+    private WorkflowInboxDto _inbox = new(0, 0, 0, 0, 0, 0, []);
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _inbox = await client.GetFromJsonAsync<WorkflowInboxDto>("/api/v1/workflows/inbox") ?? _inbox;
+    }
+
+    private static string PriorityClass(string priority) => priority switch
+    {
+        "Critical" or "High" => "danger",
+        "Medium" => "warn",
+        _ => "ok"
+    };
+}

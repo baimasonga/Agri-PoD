@@ -220,6 +220,23 @@ public sealed record StockReconciliationDto(
 
 public sealed record CreateStockReconciliationRequest(Guid CampaignId, decimal ReturnedQuantity, string SupervisorUserId, string Notes);
 
+public sealed record WorkflowInboxDto(
+    int PendingFarmerApprovals,
+    int PendingCampaignApprovals,
+    int DispatchesAwaitingLoad,
+    int OpenPoDExceptions,
+    int SyncFailures,
+    int ReconciliationsPendingReview,
+    IReadOnlyCollection<WorkflowTaskDto> Tasks);
+
+public sealed record WorkflowTaskDto(
+    string Queue,
+    string Title,
+    string Detail,
+    string Priority,
+    string ActionUrl,
+    DateTimeOffset CreatedAt);
+
 public sealed record ReportSummaryDto(
     int FarmersRegistered,
     int FarmersApproved,

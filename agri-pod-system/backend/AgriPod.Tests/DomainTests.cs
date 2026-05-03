@@ -76,4 +76,17 @@ public sealed class DomainTests
         Assert.Equal("Discrepancy", reconciliation.Status);
         Assert.Equal("PendingReview", reconciliation.ReviewStatus);
     }
+
+    [Fact]
+    public void Delivery_marks_package_delivered_once_for_proof_event()
+    {
+        var delivery = new Delivery("pod-dup-check", Guid.NewGuid(), "Recipient", "+23276000000", "Bombali");
+        delivery.AddLine(Guid.NewGuid(), 50m, "PKG-RICE-0001");
+
+        delivery.MarkDelivered(8.889m, -12.044m, "field@agripod.local", "face://001", DateTimeOffset.UtcNow, null, "photo://001", "offline-001");
+
+        Assert.Equal(DeliveryStatus.Delivered, delivery.Status);
+        Assert.Contains(delivery.Lines, x => x.Barcode == "PKG-RICE-0001");
+        Assert.Single(delivery.ProofEvents);
+    }
 }

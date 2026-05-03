@@ -9,6 +9,7 @@ using AgriPod.Domain.Inventory;
 using AgriPod.Domain.Procurement;
 using AgriPod.Domain.Security;
 using AgriPod.Domain.Traceability;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace AgriPod.Infrastructure.Persistence;
@@ -216,6 +217,11 @@ public static class AgriPodDbInitializer
         var provider = db.Database.ProviderName ?? "";
         if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
+            await EnsureSqliteColumnAsync(db, "ProofOfDeliveryEvent", "SignatureReference", "TEXT", cancellationToken);
+            await EnsureSqliteColumnAsync(db, "ProofOfDeliveryEvent", "PhotoEvidenceReference", "TEXT", cancellationToken);
+            await EnsureSqliteColumnAsync(db, "ProofOfDeliveryEvent", "OfflineTransactionId", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+            await EnsureSqliteColumnAsync(db, "ProofOfDeliveryEvent", "DeliveredAt", "TEXT NOT NULL DEFAULT '1970-01-01T00:00:00+00:00'", cancellationToken);
+
             await db.Database.ExecuteSqlRawAsync(
                 """
                 CREATE TABLE IF NOT EXISTS "SystemSettings" (
@@ -351,6 +357,49 @@ public static class AgriPodDbInitializer
                 """,
                 [],
                 cancellationToken);
+
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                IF COL_LENGTH(N'ProofOfDeliveryEvent', N'SignatureReference') IS NULL
+                    ALTER TABLE [ProofOfDeliveryEvent] ADD [SignatureReference] nvarchar(max) NULL;
+                IF COL_LENGTH(N'ProofOfDeliveryEvent', N'PhotoEvidenceReference') IS NULL
+                    ALTER TABLE [ProofOfDeliveryEvent] ADD [PhotoEvidenceReference] nvarchar(max) NULL;
+                IF COL_LENGTH(N'ProofOfDeliveryEvent', N'OfflineTransactionId') IS NULL
+                    ALTER TABLE [ProofOfDeliveryEvent] ADD [OfflineTransactionId] nvarchar(max) NOT NULL DEFAULT N'';
+                IF COL_LENGTH(N'ProofOfDeliveryEvent', N'DeliveredAt') IS NULL
+                    ALTER TABLE [ProofOfDeliveryEvent] ADD [DeliveredAt] datetimeoffset NOT NULL DEFAULT '1970-01-01T00:00:00+00:00';
+                """,
+                [],
+                cancellationToken);
         }
+    }
+
+    private static async Task EnsureSqliteColumnAsync(
+        AgriPodDbContext db,
+        string table,
+        string column,
+        string definition,
+        CancellationToken cancellationToken)
+    {
+        var connection = db.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA table_info('{table}')";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            if (reader.GetString(1).Equals(column, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        await using var alter = connection.CreateCommand();
+        alter.CommandText = $"ALTER TABLE \"{table}\" ADD COLUMN \"{column}\" {definition}";
+        await alter.ExecuteNonQueryAsync(cancellationToken);
     }
 }
