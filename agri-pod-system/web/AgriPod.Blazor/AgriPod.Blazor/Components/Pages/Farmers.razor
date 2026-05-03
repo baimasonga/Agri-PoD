@@ -4,49 +4,53 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Farmers</PageTitle>
+<PageTitle>Farmer Management</PageTitle>
 
-<section class="page-section">
-    <h1>Farmer registration</h1>
-    <p>Field officers capture eligibility, GPS, photo evidence, value chain, and a generated farmer barcode while offline.</p>
-</section>
+<div class="dashboard-header">
+    <h1>Farmer Registry</h1>
+    <p class="subtitle">National database of registered beneficiaries and eligibility review queue.</p>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_message))
 {
-    <section class="notice">@_message</section>
+    <div class="terra-card" style="background: var(--primary); color: white; padding: 1rem; margin-bottom: 2rem;">
+        <strong>Notice:</strong> @_message
+    </div>
 }
 
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header">
-            <div>
-                <h2>Live approval queue</h2>
-                <p>@_farmers.Count farmers loaded from the API.</p>
-            </div>
-            <button type="button" @onclick="LoadFarmers">Refresh</button>
+<div style="display: grid; grid-template-columns: 1fr 350px; gap: 3rem; align-items: start;">
+    <div class="data-surface">
+        <div style="padding: 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin: 0;">Approval Queue</h2>
+            <button class="secondary-button" @onclick="LoadFarmers">Refresh List</button>
         </div>
         <table>
             <thead>
-                <tr><th>Farmer</th><th>District</th><th>Value chain</th><th>Evidence</th><th>Status</th><th>Action</th></tr>
+                <tr>
+                    <th>Beneficiary</th>
+                    <th>Region</th>
+                    <th>Value Chain</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Management</th>
+                </tr>
             </thead>
             <tbody>
                 @foreach (var farmer in _farmers)
                 {
                     <tr>
                         <td>
-                            <strong>@farmer.FullName</strong><br />
-                            <small>@farmer.BarcodeToken</small>
+                            <div style="font-weight: 700; color: var(--ink);">@farmer.FullName</div>
+                            <div style="font-size: 0.75rem; color: var(--muted);">@farmer.BarcodeToken</div>
                         </td>
                         <td>@farmer.DistrictCode</td>
-                        <td>@farmer.ValueChain</td>
-                        <td>GPS + photo + QR</td>
-                        <td><span class="state @StatusClass(farmer.Status)">@farmer.Status</span></td>
-                        <td>
+                        <td><span style="font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.75rem; background: #f1f5f9; border-radius: 4px;">@farmer.ValueChain</span></td>
+                        <td><span class="badge @StatusClass(farmer.Status)">@farmer.Status</span></td>
+                        <td style="text-align: right;">
                             @if (farmer.Status == "PendingReview")
                             {
-                                <div class="inline-actions">
-                                    <button type="button" @onclick="() => ReviewFarmer(farmer.Id, true)">Approve</button>
-                                    <button class="secondary-button" type="button" @onclick="() => ReviewFarmer(farmer.Id, false)">Reject</button>
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <button type="button" @onclick="() => ReviewFarmer(farmer.Id, true)" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">Approve</button>
+                                    <button class="secondary-button" type="button" @onclick="() => ReviewFarmer(farmer.Id, false)" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">Reject</button>
                                 </div>
                             }
                         </td>
@@ -55,33 +59,30 @@
             </tbody>
         </table>
     </div>
-    <div class="panel">
-        <h2>Register demo farmer</h2>
+
+    <div class="terra-card">
+        <h2 style="margin-bottom: 1.5rem;">Quick Registration</h2>
         <div class="form-stack">
-            <label>Full name <input @bind="_newFarmer.FullName" /></label>
-            <label>National ID <input @bind="_newFarmer.NationalId" /></label>
-            <label>Phone <input @bind="_newFarmer.Phone" /></label>
-            <label>District <input @bind="_newFarmer.DistrictCode" /></label>
-            <label>Chiefdom <input @bind="_newFarmer.Chiefdom" /></label>
-            <label>Community <input @bind="_newFarmer.Community" /></label>
-            <label>Value chain <input @bind="_newFarmer.ValueChain" /></label>
-            <button type="button" @onclick="RegisterFarmer">Register</button>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input @bind="_newFarmer.FullName" placeholder="e.g. John Kamara" />
+            </div>
+            <div class="form-group">
+                <label>National ID</label>
+                <input @bind="_newFarmer.NationalId" placeholder="SL-XXX-XXX" />
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input @bind="_newFarmer.Phone" placeholder="+232..." />
+            </div>
+            <div class="form-group">
+                <label>District</label>
+                <input @bind="_newFarmer.DistrictCode" placeholder="BOMBALI" />
+            </div>
+            <button type="button" @onclick="RegisterFarmer" style="width: 100%; margin-top: 1rem;">Create Beneficiary</button>
         </div>
     </div>
-</section>
-
-<section class="panel">
-    <h2>Registration controls</h2>
-    <div class="check-list">
-        <span>Personal details</span>
-        <span>GPS location</span>
-        <span>Farmer photo</span>
-        <span>Value chain</span>
-        <span>Barcode token</span>
-        <span>District review</span>
-        <span>Audit log</span>
-    </div>
-</section>
+</div>
 
 @code {
     private readonly List<FarmerDto> _farmers = [];
@@ -90,61 +91,47 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _message = QueryMessage();
         await LoadFarmers();
     }
 
     private async Task LoadFarmers()
     {
-        try
-        {
+        try {
             var client = HttpClientFactory.CreateClient("AgriPodApi");
             var farmers = await client.GetFromJsonAsync<List<FarmerDto>>("/api/v1/farmers") ?? [];
             _farmers.Clear();
             _farmers.AddRange(farmers);
-            _message ??= null;
-        }
-        catch (Exception ex)
-        {
-            _message = $"Could not load farmers from API: {ex.Message}";
+        } catch (Exception ex) {
+            _message = $"Load failed: {ex.Message}";
         }
     }
 
     private async Task RegisterFarmer()
     {
         var request = new RegisterFarmerRequest(
-            _newFarmer.FullName,
-            _newFarmer.NationalId,
-            _newFarmer.Phone,
-            _newFarmer.DistrictCode,
-            _newFarmer.Chiefdom,
-            _newFarmer.Community,
-            _newFarmer.ValueChain,
-            8.889m,
-            -12.044m,
-            $"portal-photo://{Guid.NewGuid():N}");
+            _newFarmer.FullName, _newFarmer.NationalId, _newFarmer.Phone,
+            _newFarmer.DistrictCode, "Chiefdom", "Community", "Rice",
+            8.889m, -12.044m, "img_reference");
 
         var client = HttpClientFactory.CreateClient("AgriPodApi");
         var response = await client.PostAsJsonAsync("/api/v1/farmers", request);
-        _message = response.IsSuccessStatusCode ? "Farmer registered and queued for district review." : $"Registration failed: {response.StatusCode}";
-        _newFarmer = FarmerForm.Default();
+        _message = response.IsSuccessStatusCode ? "Beneficiary created." : "Registration failed.";
         await LoadFarmers();
     }
 
     private async Task ReviewFarmer(Guid farmerId, bool approved)
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
-        var response = await client.PostAsJsonAsync($"/api/v1/farmers/{farmerId}/review", new ReviewFarmerRequest(approved, approved ? "Approved in portal." : "Rejected in portal."));
-        _message = response.IsSuccessStatusCode ? "Farmer review saved." : $"Review failed: {response.StatusCode}";
+        await client.PostAsJsonAsync($"/api/v1/farmers/{farmerId}/review", new ReviewFarmerRequest(approved, "Reviewed in portal"));
         await LoadFarmers();
     }
 
     private static string StatusClass(string status) => status switch
     {
-        "Approved" => "ok",
-        "Rejected" => "danger",
-        "PendingReview" => "warn",
-        _ => "sync"
+        "Approved" => "badge-success",
+        "Rejected" => "badge-danger",
+        "PendingReview" => "badge-warning",
+        _ => "badge-warning"
     };
 
     private sealed class FarmerForm
@@ -153,26 +140,6 @@
         public string NationalId { get; set; } = "";
         public string Phone { get; set; } = "";
         public string DistrictCode { get; set; } = "";
-        public string Chiefdom { get; set; } = "";
-        public string Community { get; set; } = "";
-        public string ValueChain { get; set; } = "";
-
-        public static FarmerForm Default() => new()
-        {
-            FullName = "Fatmata Sesay",
-            NationalId = $"SL-NIN-{Random.Shared.Next(10000, 99999)}",
-            Phone = "+23276000012",
-            DistrictCode = "KONO",
-            Chiefdom = "Gbense",
-            Community = "Koidu",
-            ValueChain = "Vegetable"
-        };
-    }
-
-    private string? QueryMessage()
-    {
-        var query = new Uri(Navigation.Uri).Query;
-        const string key = "?message=";
-        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
+        public static FarmerForm Default() => new() { FullName = "", NationalId = "", Phone = "", DistrictCode = "BOMBALI" };
     }
 }

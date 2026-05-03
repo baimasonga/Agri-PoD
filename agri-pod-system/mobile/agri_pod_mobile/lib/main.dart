@@ -22,54 +22,52 @@ class AgriPodMobile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Agri-PoD Mobile',
+      title: 'Agri-PoD Field',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xff10b981),
-          brightness: Brightness.light,
-          primary: const Color(0xff059669),
-          surface: const Color(0xfff0fdf4),
+          seedColor: const Color(0xffc2410c),
+          brightness: Brightness.dark,
+          primary: const Color(0xffea580c),
+          surface: const Color(0xff0f172a),
+          surfaceContainer: const Color(0xff1e293b),
         ),
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xff0f172a),
         appBarTheme: const AppBarTheme(
-          centerTitle: true,
+          centerTitle: false,
           elevation: 0,
-          scrolledUnderElevation: 0,
           backgroundColor: Colors.transparent,
           titleTextStyle: TextStyle(
-            color: Color(0xff064e3b),
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.0,
           ),
-          iconTheme: IconThemeData(color: Color(0xff059669)),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: const Color(0xff1e293b),
+          labelStyle: const TextStyle(color: Color(0xff94a3b8), fontWeight: FontWeight.w600),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xff10b981), width: 2),
+            borderRadius: BorderRadius.circular(20),
+            borderSide: const BorderSide(color: Color(0xffea580c), width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         ),
         navigationBarTheme: NavigationBarThemeData(
           elevation: 0,
-          backgroundColor: Colors.white,
-          indicatorColor: const Color(0xffd1fae5),
+          backgroundColor: const Color(0xff1e293b),
+          indicatorColor: const Color(0xffea580c).withValues(alpha: 0.2),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return const TextStyle(fontWeight: FontWeight.w700, color: Color(0xff059669), fontSize: 12);
+              return const TextStyle(fontWeight: FontWeight.w800, color: Color(0xffea580c), fontSize: 12);
             }
-            return const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey, fontSize: 12);
+            return const TextStyle(fontWeight: FontWeight.w500, color: Color(0xff94a3b8), fontSize: 12);
           }),
         ),
       ),
@@ -112,7 +110,11 @@ class _FieldOfficerShellState extends State<FieldOfficerShell> {
     await _refreshPending();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Successfully synced $count items to national portal.')),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xffea580c),
+          content: Text('Synced $count records to National Hub', style: const TextStyle(fontWeight: FontWeight.w800)),
+        ),
       );
     }
   }
@@ -127,12 +129,18 @@ class _FieldOfficerShellState extends State<FieldOfficerShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agri-PoD field app'),
+        title: const Text('FIELD COMMAND'),
         actions: [
-          TextButton.icon(
-            onPressed: _sync,
-            icon: const Icon(Icons.sync),
-            label: Text('$_pendingMutations'),
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: IconButton.filledTonal(
+              onPressed: _sync,
+              icon: Badge(
+                label: Text('$_pendingMutations'),
+                isLabelVisible: _pendingMutations > 0,
+                child: const Icon(Icons.sync_rounded),
+              ),
+            ),
           ),
         ],
       ),
@@ -141,9 +149,9 @@ class _FieldOfficerShellState extends State<FieldOfficerShell> {
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() => _index = value),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.person_add_alt), label: 'Farmer'),
-          NavigationDestination(icon: Icon(Icons.local_shipping), label: 'Session'),
-          NavigationDestination(icon: Icon(Icons.verified), label: 'PoD'),
+          NavigationDestination(icon: Icon(Icons.person_pin_rounded), label: 'Register'),
+          NavigationDestination(icon: Icon(Icons.hub_rounded), label: 'Session'),
+          NavigationDestination(icon: Icon(Icons.inventory_rounded), label: 'PoD'),
         ],
       ),
     );
@@ -165,22 +173,14 @@ class FarmerRegistrationPage extends StatefulWidget {
 }
 
 class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
-  final _name = TextEditingController(text: 'Aminata Kamara');
-  final _nationalId = TextEditingController(text: 'SL-NIN-00042');
-  final _phone = TextEditingController(text: '+23276000000');
-  final _community = TextEditingController(text: 'Makeni');
-  String _status = 'Registration saves locally first.';
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _nationalId.dispose();
-    _phone.dispose();
-    _community.dispose();
-    super.dispose();
-  }
+  final _name = TextEditingController();
+  final _nationalId = TextEditingController();
+  final _phone = TextEditingController();
+  final _community = TextEditingController();
+  String _status = 'Standby. Awaiting farmer registration data.';
 
   Future<void> _save() async {
+    if (_name.text.isEmpty) return;
     await widget.store.queueMutation(
       entityName: 'Farmer',
       operation: 'Register',
@@ -189,17 +189,16 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
         'nationalId': _nationalId.text,
         'phone': _phone.text,
         'districtCode': 'BOMBALI',
-        'chiefdom': 'Bombali Sebora',
         'community': _community.text,
         'valueChain': 'Rice',
         'latitude': 8.889,
         'longitude': -12.044,
-        'photoReference': 'local-photo://farmer/latest',
+        'photoReference': 'offline_img_ref',
       },
     );
     await widget.onSaved();
     setState(() {
-      _status = 'Farmer registration queued for district review.';
+      _status = 'Success. Farmer record encrypted and queued.';
       _name.clear();
       _nationalId.clear();
       _phone.clear();
@@ -210,15 +209,15 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
   @override
   Widget build(BuildContext context) {
     return WorkflowForm(
-      title: 'Farmer registration',
+      title: 'Beneficiary Onboarding',
       status: _status,
-      actionLabel: 'Save farmer offline',
+      actionLabel: 'Enroll Farmer',
       onPressed: _save,
       children: [
-        TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person))),
-        TextField(controller: _nationalId, decoration: const InputDecoration(labelText: 'National ID', prefixIcon: Icon(Icons.badge))),
-        TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone))),
-        TextField(controller: _community, decoration: const InputDecoration(labelText: 'Community', prefixIcon: Icon(Icons.location_city))),
+        TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full legal name')),
+        TextField(controller: _nationalId, decoration: const InputDecoration(labelText: 'National Identity Number')),
+        TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Contact Phone')),
+        TextField(controller: _community, decoration: const InputDecoration(labelText: 'Primary Community')),
       ],
     );
   }
@@ -239,40 +238,35 @@ class SessionPage extends StatefulWidget {
 }
 
 class _SessionPageState extends State<SessionPage> {
-  final _manifest = TextEditingController(text: 'MANIFEST-SL-2026-001');
-  String _status = 'Scan vehicle manifest at the distribution site.';
-
-  @override
-  void dispose() {
-    _manifest.dispose();
-    super.dispose();
-  }
+  final _manifest = TextEditingController();
+  String _status = 'Scan or enter the vehicle manifest code.';
 
   Future<void> _start() async {
+    if (_manifest.text.isEmpty) return;
     await widget.store.queueMutation(
       entityName: 'DistributionSession',
       operation: 'Start',
       payload: {
         'manifestBarcode': _manifest.text,
-        'fieldOfficerUserId': 'field-officer-01',
+        'fieldOfficerUserId': 'field-user-01',
         'latitude': 8.484,
         'longitude': -13.229,
         'startedAt': DateTime.now().toUtc().toIso8601String(),
       },
     );
     await widget.onSaved();
-    setState(() => _status = 'Session start queued with GPS validation evidence.');
+    setState(() => _status = 'Session established. Ready for PoD capture.');
   }
 
   @override
   Widget build(BuildContext context) {
     return WorkflowForm(
-      title: 'Distribution session',
+      title: 'Distribution Session',
       status: _status,
-      actionLabel: 'Start session offline',
+      actionLabel: 'Establish Site Node',
       onPressed: _start,
       children: [
-        TextField(controller: _manifest, decoration: const InputDecoration(labelText: 'Manifest barcode', prefixIcon: Icon(Icons.qr_code_scanner))),
+        TextField(controller: _manifest, decoration: const InputDecoration(labelText: 'Manifest Barcode', prefixIcon: Icon(Icons.qr_code_2_rounded))),
       ],
     );
   }
@@ -293,31 +287,14 @@ class DeliveryCapturePage extends StatefulWidget {
 }
 
 class _DeliveryCapturePageState extends State<DeliveryCapturePage> {
-  final _farmerBarcode = TextEditingController(text: 'FARMER-LOCAL-001');
-  final _packageBarcode = TextEditingController(text: 'PKG-NPK-0001');
-  final _otp = TextEditingController(text: '123456');
-  final _quantity = TextEditingController(text: '2');
-  final _signature = TextEditingController(text: 'Farmer Signature');
-  String _status = 'PoD requires barcode, OTP, face reference, GPS, and vehicle proximity.';
-
-  @override
-  void dispose() {
-    _farmerBarcode.dispose();
-    _packageBarcode.dispose();
-    _otp.dispose();
-    _quantity.dispose();
-    _signature.dispose();
-    super.dispose();
-  }
-
-  void _requestTwilioOtp() {
-    setState(() => _status = 'Requesting OTP via Twilio... (Requires Network)');
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) setState(() => _status = 'Twilio OTP SMS sent to farmer.');
-    });
-  }
+  final _farmerBarcode = TextEditingController();
+  final _packageBarcode = TextEditingController();
+  final _otp = TextEditingController();
+  final _quantity = TextEditingController();
+  String _status = 'Ready for Proof of Delivery evidence capture.';
 
   Future<void> _captureProof() async {
+    if (_farmerBarcode.text.isEmpty) return;
     await widget.store.queueMutation(
       entityName: 'ProofOfDelivery',
       operation: 'Confirm',
@@ -325,45 +302,34 @@ class _DeliveryCapturePageState extends State<DeliveryCapturePage> {
         'farmerBarcode': _farmerBarcode.text,
         'packageBarcode': _packageBarcode.text,
         'otpCode': _otp.text,
-        'faceCaptureReference': 'local-face://capture/latest',
+        'faceCaptureReference': 'offline_face_ref',
         'latitude': 8.484,
         'longitude': -13.229,
         'vehicleRegistration': 'SL-AG-104',
-        'quantity': double.tryParse(_quantity.text) ?? 0,
-        'capturedByUserId': 'field-officer-01',
+        'quantity': double.tryParse(_quantity.text) ?? 1,
+        'capturedByUserId': 'field-user-01',
         'timestamp': DateTime.now().toUtc().toIso8601String(),
-        'signatureReference': _signature.text.isEmpty ? null : _signature.text,
-        'photoEvidenceReference': 'local-photo://evidence/latest',
-        'offlineTransactionId': 'txn-${DateTime.now().millisecondsSinceEpoch}',
+        'offlineTransactionId': 'offline_txn_${DateTime.now().millisecondsSinceEpoch}',
       },
     );
 
     await widget.onSaved();
-    setState(() => _status = 'PoD saved locally. It will sync when connectivity returns.');
+    setState(() => _status = 'Evidence captured and secured locally.');
+    _farmerBarcode.clear(); _packageBarcode.clear(); _otp.clear(); _quantity.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return WorkflowForm(
-      title: 'Proof of delivery',
+      title: 'Proof of Delivery',
       status: _status,
-      actionLabel: 'Save PoD offline',
+      actionLabel: 'Confirm Handover',
       onPressed: _captureProof,
       children: [
-        TextField(controller: _farmerBarcode, decoration: const InputDecoration(labelText: 'Farmer barcode', prefixIcon: Icon(Icons.qr_code))),
-        TextField(controller: _packageBarcode, decoration: const InputDecoration(labelText: 'Package barcode', prefixIcon: Icon(Icons.inventory_2))),
-        Row(
-          children: [
-            Expanded(child: TextField(controller: _otp, decoration: const InputDecoration(labelText: 'OTP code', prefixIcon: Icon(Icons.password)))),
-            const SizedBox(width: 8),
-            FilledButton.tonal(
-              onPressed: _requestTwilioOtp,
-              child: const Text('Twilio SMS'),
-            ),
-          ],
-        ),
-        TextField(controller: _quantity, decoration: const InputDecoration(labelText: 'Quantity delivered', prefixIcon: Icon(Icons.scale))),
-        TextField(controller: _signature, decoration: const InputDecoration(labelText: 'Signature / Thumbprint (Optional)', prefixIcon: Icon(Icons.draw))),
+        TextField(controller: _farmerBarcode, decoration: const InputDecoration(labelText: 'Farmer Barcode')),
+        TextField(controller: _packageBarcode, decoration: const InputDecoration(labelText: 'Input Package Barcode')),
+        TextField(controller: _otp, decoration: const InputDecoration(labelText: 'Verification OTP')),
+        TextField(controller: _quantity, decoration: const InputDecoration(labelText: 'Quantity Issued')),
       ],
     );
   }
@@ -388,73 +354,62 @@ class WorkflowForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       children: [
         Text(
           title, 
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: const Color(0xff064e3b),
-            letterSpacing: -0.5,
-          )
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Fill out the details below to queue locally.',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          decoration: BoxDecoration(
+          style: const TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
             color: Colors.white,
+            letterSpacing: -1.5,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xffea580c).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xffea580c).withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            status,
+            style: const TextStyle(color: Color(0xfffb923c), fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
+        const SizedBox(height: 32),
+        ...children.expand((child) => [child, const SizedBox(height: 20)]),
+        const SizedBox(height: 12),
+        Container(
+          height: 72,
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xff10b981).withValues(alpha: 0.08),
-                blurRadius: 24,
+                color: const Color(0xffea580c).withValues(alpha: 0.3),
+                blurRadius: 20,
                 offset: const Offset(0, 8),
               )
             ]
           ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ...children.expand((child) => [child, const SizedBox(height: 16)]),
-              const SizedBox(height: 8),
-              FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  elevation: 0,
-                ),
-                onPressed: onPressed,
-                icon: const Icon(Icons.cloud_upload_outlined),
-                label: Text(actionLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xffecfdf5),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xffa7f3d0)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Color(0xff059669)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  status,
-                  style: const TextStyle(color: Color(0xff065f46), fontWeight: FontWeight.w500, height: 1.4),
-                ),
-              ),
-            ],
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xffea580c),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              elevation: 0,
+            ),
+            onPressed: onPressed,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(actionLabel, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5)),
+                const SizedBox(width: 12),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+              ],
+            ),
           ),
         ),
       ],

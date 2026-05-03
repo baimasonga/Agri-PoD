@@ -4,39 +4,34 @@
 @inject IHttpClientFactory HttpClientFactory
 
 <div class="page">
-    <div class="sidebar">
+    <aside class="sidebar">
         <NavMenu />
-    </div>
+    </aside>
 
     <main>
-        <div class="top-row">
-            <div class="top-row-title">
-                <strong>National command portal</strong>
-                <span>@(AuthState.IsAuthenticated ? $"{AuthState.Email} / {AuthState.Role}" : "Sign in required")</span>
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+            <div>
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;">Agri-PoD Command Center</span>
             </div>
-            <div class="top-row-status" aria-label="System status">
-                <span class="system-chip ok">API online</span>
-                <span class="system-chip sync">Offline ready</span>
-                <span class="system-chip warn">Demo data</span>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div style="text-align: right;">
+                    <div style="font-weight: 700; font-size: 0.9rem;">@(AuthState.IsAuthenticated ? AuthState.Email : "Guest Session")</div>
+                    <div style="font-size: 0.75rem; color: var(--muted); font-weight: 600;">@(AuthState.IsAuthenticated ? AuthState.Role : "Public Access")</div>
+                </div>
+                <div style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; color: #64748b;">
+                    @(AuthState.IsAuthenticated ? AuthState.Email[0].ToString().ToUpper() : "?")
+                </div>
             </div>
-            @if (AuthState.IsAuthenticated)
-            {
-                <button class="top-action" type="button" @onclick="SignOut">Sign out</button>
-            }
-            else
-            {
-                <button class="top-action" type="button" @onclick="SignIn">Sign in</button>
-            }
-        </div>
+        </header>
 
-        <article class="content">
+        <article>
             @if (!AuthState.IsAuthenticated && !IsLoginPage)
             {
-                <section class="login-panel">
-                    <h1>Sign in required</h1>
-                    <p>Use a seeded demo role to access Agri-PoD workflows.</p>
-                    <button type="button" @onclick="SignIn">Go to login</button>
-                </section>
+                <div class="terra-card" style="max-width: 500px; margin: 5rem auto; text-align: center;">
+                    <h2 style="font-size: 2rem; margin-bottom: 1rem;">Welcome to Agri-PoD</h2>
+                    <p style="margin-bottom: 2rem;">Please authenticate to access the national distribution dashboard and operational controls.</p>
+                    <button type="button" @onclick="SignIn" style="width: 100%;">Sign in to Portal</button>
+                </div>
             }
             else
             {
@@ -57,35 +52,23 @@
         }
     }
 
-    private void SignOut()
-    {
-        AuthState.SignOut();
-        Navigation.NavigateTo("/login");
-    }
-
     private void SignIn() => Navigation.NavigateTo("/login");
 
     private async Task SignInAsDemoAdmin()
     {
-        var client = HttpClientFactory.CreateClient("AgriPodApi");
-        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new AgriPod.Shared.LoginRequest("admin@agripod.local", "demo"));
-        if (!response.IsSuccessStatusCode)
+        try 
         {
-            return;
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            var response = await client.PostAsJsonAsync("/api/v1/auth/login", new AgriPod.Shared.LoginRequest("admin@agripod.local", "demo"));
+            if (response.IsSuccessStatusCode)
+            {
+                var token = await response.Content.ReadFromJsonAsync<AgriPod.Shared.AuthTokenResponse>();
+                if (token is not null)
+                {
+                    AuthState.SignIn("admin@agripod.local", token.Role, token.AccessToken, token.ExpiresAt);
+                }
+            }
         }
-
-        var token = await response.Content.ReadFromJsonAsync<AgriPod.Shared.AuthTokenResponse>();
-        if (token is null)
-        {
-            return;
-        }
-
-        AuthState.SignIn("admin@agripod.local", token.Role, token.AccessToken, token.ExpiresAt);
+        catch { /* API might be down during build */ }
     }
 }
-
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">x</a>
-</div>

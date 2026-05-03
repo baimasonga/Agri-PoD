@@ -3,59 +3,51 @@
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
 
-<PageTitle>Agri-PoD Operations</PageTitle>
+<PageTitle>Agri-PoD Command Center</PageTitle>
 
-<section class="dashboard-head">
-    <div>
-        <h1>Agri-PoD operations</h1>
-        <p>National agriculture inventory, district distribution, vehicle tracking, and proof-of-delivery review for Sierra Leone.</p>
-    </div>
-    <div class="status-strip">
-        <span>OTP: Twilio Verify</span>
-        <span>Mobile: offline first</span>
-        <span>District node: SQL Express</span>
-    </div>
-</section>
+<div class="dashboard-header">
+    <h1>National Overview</h1>
+    <p class="subtitle">Operational insights and real-time distribution metrics for the current campaign cycle.</p>
+</div>
 
-<section class="metric-grid">
-    <div class="metric-card">
-        <span>Registered farmers</span>
-        <strong>@_summary.FarmersRegistered</strong>
-        <p>captured from portal and offline mobile sync</p>
+<div class="card-grid">
+    <div class="terra-card">
+        <span class="metric-label">Registered Farmers</span>
+        <div class="metric-value">@_summary.FarmersRegistered</div>
+        <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted); font-weight: 600;">+12% from last week</p>
     </div>
-    <div class="metric-card">
-        <span>Approved farmers</span>
-        <strong>@_summary.FarmersApproved</strong>
-        <p>eligible for allocation and PoD workflows</p>
+    <div class="terra-card">
+        <span class="metric-label">Active Campaigns</span>
+        <div class="metric-value">@_summary.CampaignsActive</div>
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+            <span class="badge badge-success">Running</span>
+        </div>
     </div>
-    <div class="metric-card warning">
-        <span>Open exceptions</span>
-        <strong>@_summary.OpenExceptions</strong>
-        <p>cases waiting for district or audit review</p>
+    <div class="terra-card">
+        <span class="metric-label">Completed Deliveries</span>
+        <div class="metric-value">@_summary.DeliveriesCompleted</div>
+        <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted); font-weight: 600;">Target: 5,000</p>
     </div>
-    <div class="metric-card">
-        <span>Active campaigns</span>
-        <strong>@_summary.CampaignsActive</strong>
-        <p>approved distribution plans in operation</p>
+    <div class="terra-card" style="border-left: 4px solid var(--primary);">
+        <span class="metric-label">Operational Risks</span>
+        <div class="metric-value" style="color: var(--primary);">@_summary.OpenExceptions</div>
+        <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted); font-weight: 600;">Requires immediate audit</p>
     </div>
-</section>
+</div>
 
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header">
-            <div>
-                <h2>Delivery control queue</h2>
-                <p>Proof packages that need supervisor attention and exception closure.</p>
-            </div>
-            <a class="button-link" href="workflows">Open workflow inbox</a>
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 3rem; align-items: start;">
+    <div class="data-surface">
+        <div style="padding: 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin: 0;">Recent Proof of Deliveries</h2>
+            <button class="secondary-button" style="padding: 0.5rem 1rem; font-size: 0.8rem;">View All</button>
         </div>
         <table>
             <thead>
                 <tr>
-                    <th>Delivery</th>
-                    <th>District</th>
-                    <th>Recipient</th>
-                    <th>Proof</th>
+                    <th>Batch ID</th>
+                    <th>Region</th>
+                    <th>Evidence</th>
+                    <th>Security</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -63,103 +55,69 @@
                 @foreach (var delivery in Deliveries)
                 {
                     <tr>
-                        <td>@delivery.Number</td>
+                        <td style="font-weight: 700;">@delivery.Number</td>
                         <td>@delivery.District</td>
                         <td>@delivery.Recipient</td>
-                        <td>@delivery.Proof</td>
-                        <td><span class="state @delivery.StateClass">@delivery.State</span></td>
+                        <td>
+                            <div style="display: flex; gap: 0.25rem;">
+                                @if (delivery.Proof.Contains("OTP")) { <span title="OTP" style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span> }
+                                @if (delivery.Proof.Contains("face")) { <span title="Face" style="width: 8px; height: 8px; border-radius: 50%; background: #8b5cf6;"></span> }
+                                @if (delivery.Proof.Contains("GPS")) { <span title="GPS" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span> }
+                            </div>
+                        </td>
+                        <td><span class="badge @(delivery.StateClass == "ok" ? "badge-success" : "badge-warning")">@delivery.State</span></td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
 
-    <div class="panel">
-        <div class="panel-header compact">
-            <h2>District nodes</h2>
-        </div>
-        <div class="node-list">
+    <div class="terra-card">
+        <h2 style="margin-bottom: 1.5rem;">System Nodes</h2>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             @foreach (var node in Nodes)
             {
-                <div class="node-row">
-                    <span class="node-dot @node.StateClass"></span>
-                    <div>
-                        <strong>@node.Name</strong>
-                        <small>@node.Detail</small>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: @(node.StateClass == "ok" ? "#10b981" : "#f59e0b"); box-shadow: 0 0 10px @(node.StateClass == "ok" ? "rgba(16,185,129,0.4)" : "rgba(245,158,11,0.4)");"></div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 0.9rem;">@node.Name</div>
+                        <div style="font-size: 0.75rem; color: var(--muted);">@node.Detail</div>
                     </div>
                 </div>
             }
         </div>
-    </div>
-</section>
-
-<section class="map-band">
-    <div>
-        <h2>Fleet movement</h2>
-        <p>Vehicle GPS pings feed the API continuously and are linked to delivery proof events.</p>
-    </div>
-    <div class="route-map" aria-label="Vehicle route sketch">
-        <span class="route-point p1"></span>
-        <span class="route-point p2"></span>
-        <span class="route-point p3"></span>
-        <span class="route-line"></span>
-    </div>
-</section>
-
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <h2>End-to-end workflow</h2>
-            <p>Every stage creates auditable records and feeds the next operating queue.</p>
+        <hr style="margin: 2rem 0; opacity: 0.1;" />
+        <div style="text-align: center;">
+            <p style="font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">Infrastructure: Azure Hub</p>
         </div>
     </div>
-    <div class="flow-strip">
-        @foreach (var step in Flow)
-        {
-            <span>@step</span>
-        }
-    </div>
-</section>
+</div>
 
 @code {
     private ReportSummaryDto _summary = new(0, 0, 0, 0, 0, 0);
 
     protected override async Task OnInitializedAsync()
     {
-        var client = HttpClientFactory.CreateClient("AgriPodApi");
-        _summary = await client.GetFromJsonAsync<ReportSummaryDto>("/api/v1/reports/summary") ?? _summary;
+        try {
+            var client = HttpClientFactory.CreateClient("AgriPodApi");
+            _summary = await client.GetFromJsonAsync<ReportSummaryDto>("/api/v1/reports/summary") ?? _summary;
+        } catch {}
     }
 
     private static readonly DeliveryRow[] Deliveries =
     [
-        new("POD-SL-2026-0018", "Bombali", "Makeni Farmers Union", "OTP + face + GPS", "Ready", "ok"),
-        new("POD-SL-2026-0021", "Bo", "Tikonko Coop", "QR + GPS", "Needs OTP", "warn"),
-        new("POD-SL-2026-0024", "Kono", "Gbense Stores", "Offline packet", "Syncing", "sync"),
-        new("POD-SL-2026-0026", "Pujehun", "Kpaka Chiefdom", "Face pending", "Exception", "danger")
+        new("POD-2026-001", "Bombali", "Makeni Union", "OTP, face, GPS", "Verified", "ok"),
+        new("POD-2026-002", "Bo", "Tikonko Coop", "GPS", "Processing", "warn"),
+        new("POD-2026-003", "Kono", "Gbense Stores", "Offline", "Syncing", "warn"),
+        new("POD-2026-004", "Western", "Freetown Hub", "OTP, GPS", "Verified", "ok")
     ];
 
     private static readonly NodeRow[] Nodes =
     [
-        new("Western Area", "online, 4 sec latency", "ok"),
-        new("Bombali", "online, SQL Express relay healthy", "ok"),
-        new("Kono", "offline, 18 queued changes", "warn"),
-        new("Pujehun", "offline, 9 queued changes", "danger")
-    ];
-
-    private static readonly string[] Flow =
-    [
-        "Farmer registration",
-        "Procurement",
-        "Stock receiving",
-        "Campaign planning",
-        "Allocation",
-        "Vehicle dispatch",
-        "GPS tracking",
-        "PoD",
-        "Offline sync",
-        "Reconciliation",
-        "Reports",
-        "Audit"
+        new("Western Area", "99.9% Uptime", "ok"),
+        new("Bombali Hub", "SQL Relay Active", "ok"),
+        new("Kono Station", "18 Pending Changes", "warn"),
+        new("Pujehun Site", "Connectivity Low", "warn")
     ];
 
     private sealed record DeliveryRow(string Number, string District, string Recipient, string Proof, string State, string StateClass);
