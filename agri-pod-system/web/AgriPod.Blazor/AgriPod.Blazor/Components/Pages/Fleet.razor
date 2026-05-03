@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
 
 <PageTitle>Fleet GPS</PageTitle>
 
@@ -9,6 +10,11 @@
     <h1>Fleet GPS</h1>
     <p>Vehicle location events are posted to the API and joined to dispatch and proof-of-delivery records.</p>
 </section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <section class="notice">@_message</section>
+}
 
 <section class="metric-grid">
     <div class="metric-card"><span>Vehicles</span><strong>@_vehicles.Count</strong><p>registered distribution vehicles</p></div>
@@ -54,29 +60,106 @@
 <section class="panel">
     <h2>Dispatch manifests</h2>
     <table>
-        <thead><tr><th>Vehicle</th><th>Driver</th><th>Manifest</th><th>Status</th></tr></thead>
+        <thead><tr><th>Vehicle</th><th>Driver</th><th>Manifest</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>
             @foreach (var dispatch in _dispatches)
             {
-                <tr><td>@dispatch.VehicleRegistration</td><td>@dispatch.DriverUserId</td><td>@dispatch.ManifestBarcode</td><td><span class="state ok">@dispatch.Status</span></td></tr>
+                <tr>
+                    <td>@dispatch.VehicleRegistration</td>
+                    <td>@dispatch.DriverUserId</td>
+                    <td>@dispatch.ManifestBarcode</td>
+                    <td><span class="state ok">@dispatch.Status</span></td>
+                    <td>
+                        @if (dispatch.Status != "LoadedOnVehicle")
+                        {
+                            <form class="inline-form" method="post" action="/portal-actions/fleet/confirm-loaded">
+                                <input type="hidden" name="id" value="@dispatch.Id" />
+                                <button type="submit">Confirm loaded</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
             }
         </tbody>
     </table>
+</section>
+
+<section class="workbench">
+    <div class="panel">
+        <div class="panel-header compact">
+            <div>
+                <h2>Register vehicle</h2>
+                <p>Add transport capacity and enable GPS tracking.</p>
+            </div>
+        </div>
+        <form class="form-stack" method="post" action="/portal-actions/fleet/register-vehicle">
+            <label>Registration <input name="registration" value="@($"SL-{Random.Shared.Next(1000,9999)}")" /></label>
+            <label>Driver user id <input name="driverUserId" value="driver@agripod.local" /></label>
+            <button type="submit">Register vehicle</button>
+        </form>
+    </div>
+    <div class="panel">
+        <div class="panel-header compact">
+            <div>
+                <h2>Create dispatch</h2>
+                <p>Generate a manifest barcode for warehouse loading.</p>
+            </div>
+        </div>
+        <form class="form-stack" method="post" action="/portal-actions/fleet/create-dispatch">
+            <label>
+                Campaign
+                <select name="campaignId">
+                    @foreach (var campaign in _campaigns)
+                    {
+                        <option value="@campaign.Id">@campaign.Name - @campaign.Status</option>
+                    }
+                </select>
+            </label>
+            <label>
+                Warehouse
+                <select name="warehouseId">
+                    @foreach (var warehouse in _warehouses)
+                    {
+                        <option value="@warehouse.Id">@warehouse.Name - @warehouse.District</option>
+                    }
+                </select>
+            </label>
+            <label>Vehicle registration <input name="vehicleRegistration" value="@(_vehicles.FirstOrDefault()?.Registration ?? "SL-0001")" /></label>
+            <label>Driver user id <input name="driverUserId" value="driver@agripod.local" /></label>
+            <button type="submit">Create dispatch</button>
+        </form>
+    </div>
 </section>
 
 @code {
     private readonly List<VehicleDto> _vehicles = [];
     private readonly List<DispatchDto> _dispatches = [];
     private readonly List<VehicleLocationRequest> _locations = [];
+    private readonly List<CampaignDto> _campaigns = [];
+    private readonly List<WarehouseDto> _warehouses = [];
+    private string? _message;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        _message = QueryMessage();
+        await Load();
+    }
 
     private async Task Load()
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
-        _vehicles.Clear(); _dispatches.Clear(); _locations.Clear();
+        _vehicles.Clear(); _dispatches.Clear(); _locations.Clear(); _campaigns.Clear(); _warehouses.Clear();
         _vehicles.AddRange(await client.GetFromJsonAsync<List<VehicleDto>>("/api/v1/dispatch/vehicles") ?? []);
         _dispatches.AddRange(await client.GetFromJsonAsync<List<DispatchDto>>("/api/v1/dispatch") ?? []);
         _locations.AddRange(await client.GetFromJsonAsync<List<VehicleLocationRequest>>("/api/v1/fleet/locations/latest") ?? []);
+        _campaigns.AddRange(await client.GetFromJsonAsync<List<CampaignDto>>("/api/v1/campaigns") ?? []);
+        _warehouses.AddRange(await client.GetFromJsonAsync<List<WarehouseDto>>("/api/v1/warehouses") ?? []);
+    }
+
+    private string? QueryMessage()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        const string key = "?message=";
+        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

@@ -17,23 +17,49 @@
     <div class="metric-card warning"><span>Open exceptions</span><strong>@_summary.OpenExceptions</strong><p>awaiting supervisor action</p></div>
 </section>
 
-<section class="panel">
-    <div class="panel-header">
-        <h2>Report catalogue</h2>
-        <button type="button" @onclick="Load">Refresh</button>
+<section class="workbench">
+    <div class="panel large-panel">
+        <div class="panel-header">
+            <div>
+                <h2>Operational report catalogue</h2>
+                <p>Reports are assembled from the live API summary and workflow tables.</p>
+            </div>
+            <button type="button" @onclick="Load">Refresh</button>
+        </div>
+        <div class="report-grid">
+            @foreach (var report in ReportCatalogue)
+            {
+                <article class="report-tile">
+                    <div>
+                        <h3>@report.Name</h3>
+                        <p>@report.Description</p>
+                    </div>
+                    <span class="state @report.StateClass">@report.Status</span>
+                </article>
+            }
+        </div>
     </div>
-    <div class="flow-strip">
-        <span>Farmer distribution</span>
-        <span>Stock balance</span>
-        <span>Vehicle tracking</span>
-        <span>PoD verification</span>
-        <span>Exception report</span>
-        <span>Audit report</span>
+    <div class="panel">
+        <h2>Control totals</h2>
+        <div class="node-list">
+            <div class="node-row"><span class="node-dot ok"></span><div><strong>@_summary.DeliveriesCompleted completed deliveries</strong><small>PoD records with delivery status closed</small></div></div>
+            <div class="node-row"><span class="node-dot sync"></span><div><strong>@_summary.OfflineMutationsPending pending offline mutations</strong><small>mobile transactions waiting for validation</small></div></div>
+            <div class="node-row"><span class="node-dot warn"></span><div><strong>@_summary.OpenExceptions open exceptions</strong><small>supervisor review queue</small></div></div>
+        </div>
     </div>
 </section>
 
 @code {
     private ReportSummaryDto _summary = new(0, 0, 0, 0, 0, 0);
+    private static readonly ReportRow[] ReportCatalogue =
+    [
+        new("Farmer distribution", "Registration, approval, district, chiefdom, and value-chain coverage.", "Ready", "ok"),
+        new("Stock balance", "Warehouse lots, available quantity, expiry, and package traceability.", "Ready", "ok"),
+        new("Vehicle tracking", "Dispatch manifests, driver assignments, route pings, and stop review.", "Ready", "ok"),
+        new("PoD verification", "Barcode, OTP, GPS, facial capture, and quantity confirmation status.", "Ready", "ok"),
+        new("Exception report", "Duplicate delivery, GPS mismatch, OTP failure, and stock discrepancy cases.", "Action", "warn"),
+        new("Audit report", "Actor, entity, timestamp, and workflow event trail for compliance review.", "Ready", "sync")
+    ];
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -42,4 +68,6 @@
         var client = HttpClientFactory.CreateClient("AgriPodApi");
         _summary = await client.GetFromJsonAsync<ReportSummaryDto>("/api/v1/reports/summary") ?? new(0, 0, 0, 0, 0, 0);
     }
+
+    private sealed record ReportRow(string Name, string Description, string Status, string StateClass);
 }

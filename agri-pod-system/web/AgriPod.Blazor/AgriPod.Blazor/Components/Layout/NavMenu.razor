@@ -2,115 +2,136 @@
 @inject NavigationManager Navigation
 
 <div class="brand">
-    <div class="brand-mark">AP</div>
+    <a class="brand-mark" href="">AP</a>
     <div>
         <a class="navbar-brand" href="">Agri-PoD</a>
-        <span>Inventory and delivery</span>
+        <span>Sierra Leone distribution</span>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input id="nav-toggle" type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<label class="nav-toggle-label" for="nav-toggle">Menu</label>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item">
-            <NavLink class="nav-link" href="login">
-                <span aria-hidden="true">00</span> Login
-            </NavLink>
-        </div>
-
-        <div class="nav-item">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span aria-hidden="true">01</span> Dashboard
-            </NavLink>
-        </div>
-
-        @if (CanAccess("SystemAdministrator", "ProjectManager", "ProcurementOfficer", "WarehouseManager", "Auditor", "MonitoringEvaluationOfficer"))
-        {
+<div class="nav-scrollable" onclick="document.querySelector('#nav-toggle').checked = false">
+    <nav class="flex-column" aria-label="Primary">
+        <div class="nav-group">
+            <span class="nav-group-title">Command</span>
             <div class="nav-item">
-                <NavLink class="nav-link" href="inventory">
-                    <span aria-hidden="true">02</span> Inventory
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="nav-icon" aria-hidden="true">01</span>
+                    <span><strong>Dashboard</strong><small>National overview</small></span>
                 </NavLink>
             </div>
-        }
-
-        @if (CanAccess("SystemAdministrator", "DistrictCoordinator", "FieldOfficer", "Auditor", "MonitoringEvaluationOfficer"))
-        {
-            <div class="nav-item">
-                <NavLink class="nav-link" href="farmers">
-                    <span aria-hidden="true">03</span> Farmers
-                </NavLink>
-            </div>
-        }
-
-        @if (CanAccess("SystemAdministrator", "ProcurementOfficer", "WarehouseManager", "Auditor"))
-        {
-            <div class="nav-item">
-                <NavLink class="nav-link" href="procurement">
-                    <span aria-hidden="true">04</span> Procurement
-                </NavLink>
-            </div>
-        }
-
-        @if (CanAccess("SystemAdministrator", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
-        {
-            <div class="nav-item">
-                <NavLink class="nav-link" href="campaigns">
-                    <span aria-hidden="true">05</span> Campaigns
-                </NavLink>
-            </div>
-        }
-
-        @if (CanAccess("SystemAdministrator", "FieldOfficer", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
-        {
-            <div class="nav-item">
-                <NavLink class="nav-link" href="deliveries">
-                    <span aria-hidden="true">06</span> Deliveries
-                </NavLink>
-            </div>
-        }
-
-        @if (CanAccess("SystemAdministrator", "Driver", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
-        {
-            <div class="nav-item">
-                <NavLink class="nav-link" href="fleet">
-                    <span aria-hidden="true">07</span> Fleet GPS
-                </NavLink>
-            </div>
-        }
-
-        <div class="nav-item">
-            <NavLink class="nav-link" href="offline-sync">
-                <span aria-hidden="true">08</span> Offline sync
-            </NavLink>
-        </div>
-
-        @if (CanAccess("SystemAdministrator", "Auditor", "DistrictCoordinator"))
-        {
-            <div class="nav-item">
-                <NavLink class="nav-link" href="compliance">
-                    <span aria-hidden="true">09</span> Compliance
-                </NavLink>
-            </div>
-        }
-
-        @if (CanAccess("SystemAdministrator", "ProjectManager", "MonitoringEvaluationOfficer", "Auditor"))
-        {
             <div class="nav-item">
                 <NavLink class="nav-link" href="reports">
-                    <span aria-hidden="true">10</span> Reports
+                    <span class="nav-icon" aria-hidden="true">02</span>
+                    <span><strong>Reports</strong><small>M&E summaries</small></span>
                 </NavLink>
             </div>
-        }
+        </div>
 
-        @if (CanAccess("SystemAdministrator"))
-        {
+        <div class="nav-group">
+            <span class="nav-group-title">Operations</span>
+            @if (CanAccess("SystemAdministrator", "ProjectManager", "ProcurementOfficer", "WarehouseManager", "Auditor", "MonitoringEvaluationOfficer"))
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="inventory">
+                        <span class="nav-icon" aria-hidden="true">03</span>
+                        <span><strong>Inventory</strong><small>Stock lots and warehouses</small></span>
+                    </NavLink>
+                </div>
+            }
+
+            @if (CanAccess("SystemAdministrator", "ProcurementOfficer", "WarehouseManager", "Auditor"))
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="procurement">
+                        <span class="nav-icon" aria-hidden="true">04</span>
+                        <span><strong>Procurement</strong><small>Suppliers and receipts</small></span>
+                    </NavLink>
+                </div>
+            }
+
+            @if (CanAccess("SystemAdministrator", "DistrictCoordinator", "FieldOfficer", "Auditor", "MonitoringEvaluationOfficer"))
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="farmers">
+                        <span class="nav-icon" aria-hidden="true">05</span>
+                        <span><strong>Farmers</strong><small>Registration review</small></span>
+                    </NavLink>
+                </div>
+            }
+
+            @if (CanAccess("SystemAdministrator", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="campaigns">
+                        <span class="nav-icon" aria-hidden="true">06</span>
+                        <span><strong>Campaigns</strong><small>Planning and allocation</small></span>
+                    </NavLink>
+                </div>
+            }
+        </div>
+
+        <div class="nav-group">
+            <span class="nav-group-title">Distribution</span>
+            @if (CanAccess("SystemAdministrator", "FieldOfficer", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="deliveries">
+                        <span class="nav-icon" aria-hidden="true">07</span>
+                        <span><strong>Deliveries</strong><small>PoD evidence queue</small></span>
+                    </NavLink>
+                </div>
+            }
+
+            @if (CanAccess("SystemAdministrator", "Driver", "ProjectManager", "DistrictCoordinator", "Auditor", "MonitoringEvaluationOfficer"))
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="fleet">
+                        <span class="nav-icon" aria-hidden="true">08</span>
+                        <span><strong>Fleet GPS</strong><small>Vehicles and dispatch</small></span>
+                    </NavLink>
+                </div>
+            }
+
             <div class="nav-item">
-                <NavLink class="nav-link" href="users">
-                    <span aria-hidden="true">11</span> Users
+                <NavLink class="nav-link" href="offline-sync">
+                    <span class="nav-icon" aria-hidden="true">09</span>
+                    <span><strong>Offline sync</strong><small>Mobile queue contract</small></span>
                 </NavLink>
             </div>
-        }
+        </div>
+
+        <div class="nav-group">
+            <span class="nav-group-title">Control</span>
+            @if (CanAccess("SystemAdministrator", "Auditor", "DistrictCoordinator"))
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="compliance">
+                        <span class="nav-icon" aria-hidden="true">10</span>
+                        <span><strong>Compliance</strong><small>Exceptions and audit</small></span>
+                    </NavLink>
+                </div>
+            }
+
+            @if (CanAccess("SystemAdministrator"))
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="users">
+                        <span class="nav-icon" aria-hidden="true">11</span>
+                        <span><strong>Users</strong><small>Roles and access</small></span>
+                    </NavLink>
+                </div>
+            }
+
+            <div class="nav-item">
+                <NavLink class="nav-link" href="login">
+                    <span class="nav-icon" aria-hidden="true">12</span>
+                    <span><strong>Login</strong><small>Switch demo role</small></span>
+                </NavLink>
+            </div>
+        </div>
     </nav>
 </div>
 

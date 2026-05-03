@@ -76,6 +76,47 @@ app.MapPost("/portal-actions/procurement/create-supplier", async (HttpRequest re
     return Results.Redirect($"/procurement?message={Uri.EscapeDataString(result)}");
 }).DisableAntiforgery();
 
+app.MapPost("/portal-actions/procurement/create-purchase-order", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    if (!Guid.TryParse(Read(form, "supplierId"), out var supplierId) ||
+        !Guid.TryParse(Read(form, "inventoryItemId"), out var itemId) ||
+        !decimal.TryParse(Read(form, "quantity"), out var quantity))
+    {
+        return Results.Redirect("/procurement?message=Purchase%20order%20requires%20supplier%2C%20item%2C%20and%20quantity.");
+    }
+
+    var purchaseNumber = Read(form, "purchaseNumber");
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/procurement/purchase-orders",
+        new CreatePurchaseOrderRequest(purchaseNumber, supplierId, itemId, quantity, Read(form, "batchNumber")),
+        $"Created purchase order {purchaseNumber}.");
+
+    return Results.Redirect($"/procurement?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
+app.MapPost("/portal-actions/procurement/receive-stock", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    if (!Guid.TryParse(Read(form, "inventoryItemId"), out var itemId) ||
+        !Guid.TryParse(Read(form, "warehouseId"), out var warehouseId) ||
+        !decimal.TryParse(Read(form, "quantity"), out var quantity))
+    {
+        return Results.Redirect("/procurement?message=Stock%20receipt%20requires%20item%2C%20warehouse%2C%20and%20quantity.");
+    }
+
+    DateOnly? expiresOn = DateOnly.TryParse(Read(form, "expiresOn"), out var parsedDate) ? parsedDate : null;
+    var lotCode = Read(form, "lotCode");
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/procurement/stock-receipts",
+        new ReceiveStockRequest(itemId, warehouseId, lotCode, quantity, expiresOn),
+        $"Received stock lot {lotCode}.");
+
+    return Results.Redirect($"/procurement?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
 app.MapPost("/portal-actions/campaigns/create", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
 {
     var form = await request.ReadFormAsync();
@@ -196,6 +237,55 @@ app.MapPost("/portal-actions/compliance/resolve", async (HttpRequest request, IH
         "Exception resolved.");
 
     return Results.Redirect($"/compliance?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
+app.MapPost("/portal-actions/fleet/register-vehicle", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    var registration = Read(form, "registration");
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/dispatch/vehicles",
+        new RegisterVehicleRequest(registration, Read(form, "driverUserId"), true),
+        $"Registered vehicle {registration}.");
+
+    return Results.Redirect($"/fleet?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
+app.MapPost("/portal-actions/fleet/create-dispatch", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    if (!Guid.TryParse(Read(form, "campaignId"), out var campaignId) ||
+        !Guid.TryParse(Read(form, "warehouseId"), out var warehouseId))
+    {
+        return Results.Redirect("/fleet?message=Dispatch%20requires%20campaign%20and%20warehouse.");
+    }
+
+    var result = await PostToApiAsync(
+        httpClientFactory,
+        "/api/v1/dispatch",
+        new CreateDispatchRequest(campaignId, warehouseId, Read(form, "vehicleRegistration"), Read(form, "driverUserId")),
+        "Dispatch manifest created.");
+
+    return Results.Redirect($"/fleet?message={Uri.EscapeDataString(result)}");
+}).DisableAntiforgery();
+
+app.MapPost("/portal-actions/fleet/confirm-loaded", async (HttpRequest request, IHttpClientFactory httpClientFactory) =>
+{
+    var form = await request.ReadFormAsync();
+    var id = Read(form, "id");
+    if (!Guid.TryParse(id, out _))
+    {
+        return Results.Redirect("/fleet?message=Missing%20dispatch%20id.");
+    }
+
+    var result = await PostToApiAsync<object?>(
+        httpClientFactory,
+        $"/api/v1/dispatch/{id}/confirm-loaded",
+        null,
+        "Dispatch confirmed loaded.");
+
+    return Results.Redirect($"/fleet?message={Uri.EscapeDataString(result)}");
 }).DisableAntiforgery();
 
 app.Run();

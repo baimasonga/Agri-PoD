@@ -39,8 +39,78 @@
     </div>
 </section>
 
+<section class="workbench">
+    <div class="panel">
+        <div class="panel-header compact">
+            <div>
+                <h2>Create purchase order</h2>
+                <p>Procurement officer submits purchased inputs for warehouse receipt.</p>
+            </div>
+        </div>
+        <form class="form-stack" method="post" action="/portal-actions/procurement/create-purchase-order">
+            <label>Purchase number <input name="purchaseNumber" value="@($"PO-{DateTime.Today:yyyy}-{Random.Shared.Next(100,999)}")" /></label>
+            <label>
+                Supplier
+                <select name="supplierId">
+                    @foreach (var supplier in _suppliers)
+                    {
+                        <option value="@supplier.Id">@supplier.Name</option>
+                    }
+                </select>
+            </label>
+            <label>
+                Input item
+                <select name="inventoryItemId">
+                    @foreach (var item in _items)
+                    {
+                        <option value="@item.Id">@item.Name (@item.Sku)</option>
+                    }
+                </select>
+            </label>
+            <label>Quantity <input name="quantity" value="2500" /></label>
+            <label>Batch number <input name="batchNumber" value="@($"BT-{Random.Shared.Next(1000,9999)}")" /></label>
+            <button type="submit">Create purchase order</button>
+        </form>
+    </div>
+    <div class="panel">
+        <div class="panel-header compact">
+            <div>
+                <h2>Receive stock</h2>
+                <p>Warehouse receipt creates traceable stock lots for package barcode generation.</p>
+            </div>
+        </div>
+        <form class="form-stack" method="post" action="/portal-actions/procurement/receive-stock">
+            <label>
+                Input item
+                <select name="inventoryItemId">
+                    @foreach (var item in _items)
+                    {
+                        <option value="@item.Id">@item.Name (@item.UnitOfMeasure)</option>
+                    }
+                </select>
+            </label>
+            <label>
+                Warehouse
+                <select name="warehouseId">
+                    @foreach (var warehouse in _warehouses)
+                    {
+                        <option value="@warehouse.Id">@warehouse.Name - @warehouse.District</option>
+                    }
+                </select>
+            </label>
+            <label>Lot code <input name="lotCode" value="@($"LOT-{DateTime.Today:MMdd}-{Random.Shared.Next(100,999)}")" /></label>
+            <label>Quantity <input name="quantity" value="1200" /></label>
+            <label>Expiry <input name="expiresOn" type="date" value="@DateTime.Today.AddMonths(18).ToString("yyyy-MM-dd")" /></label>
+            <button type="submit">Receive stock</button>
+        </form>
+    </div>
+</section>
+
 <section class="panel">
-    <h2>Suppliers</h2>
+    <div class="panel-header compact">
+        <h2>Supplier directory</h2>
+        <span class="state sync">@_suppliers.Count suppliers</span>
+    </div>
     <div class="flow-strip">
         @foreach (var supplier in _suppliers)
         {
@@ -53,6 +123,7 @@
     private readonly List<SupplierDto> _suppliers = [];
     private readonly List<PurchaseOrderDto> _orders = [];
     private readonly List<InventoryItemDto> _items = [];
+    private readonly List<WarehouseDto> _warehouses = [];
     private string? _message;
     private SupplierForm _supplier = SupplierForm.Default();
 
@@ -65,10 +136,11 @@
     private async Task Load()
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
-        _suppliers.Clear(); _orders.Clear(); _items.Clear();
+        _suppliers.Clear(); _orders.Clear(); _items.Clear(); _warehouses.Clear();
         _suppliers.AddRange(await client.GetFromJsonAsync<List<SupplierDto>>("/api/v1/procurement/suppliers") ?? []);
         _orders.AddRange(await client.GetFromJsonAsync<List<PurchaseOrderDto>>("/api/v1/procurement/purchase-orders") ?? []);
         _items.AddRange(await client.GetFromJsonAsync<List<InventoryItemDto>>("/api/v1/inventory-items") ?? []);
+        _warehouses.AddRange(await client.GetFromJsonAsync<List<WarehouseDto>>("/api/v1/warehouses") ?? []);
     }
 
     private async Task CreateSupplier()

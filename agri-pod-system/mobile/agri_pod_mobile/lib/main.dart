@@ -24,8 +24,54 @@ class AgriPodMobile extends StatelessWidget {
     return MaterialApp(
       title: 'Agri-PoD Mobile',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff226b45)),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xff10b981),
+          brightness: Brightness.light,
+          primary: const Color(0xff059669),
+          surface: const Color(0xfff0fdf4),
+        ),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          centerTitle: true,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          backgroundColor: Colors.transparent,
+          titleTextStyle: TextStyle(
+            color: Color(0xff064e3b),
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+          iconTheme: IconThemeData(color: Color(0xff059669)),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xff10b981), width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          indicatorColor: const Color(0xffd1fae5),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(fontWeight: FontWeight.w700, color: Color(0xff059669), fontSize: 12);
+            }
+            return const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey, fontSize: 12);
+          }),
+        ),
       ),
       home: FieldOfficerShell(store: store, syncService: syncService),
     );
@@ -308,21 +354,73 @@ class WorkflowForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       children: [
-        Text(title, style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 12),
-        ...children.expand((child) => [child, const SizedBox(height: 12)]),
-        FilledButton.icon(
-          onPressed: onPressed,
-          icon: const Icon(Icons.offline_pin),
-          label: Text(actionLabel),
+        Text(
+          title, 
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: const Color(0xff064e3b),
+            letterSpacing: -0.5,
+          )
         ),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(status),
+        const SizedBox(height: 6),
+        Text(
+          'Fill out the details below to queue locally.',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xff10b981).withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              )
+            ]
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...children.expand((child) => [child, const SizedBox(height: 16)]),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  elevation: 0,
+                ),
+                onPressed: onPressed,
+                icon: const Icon(Icons.cloud_upload_outlined),
+                label: Text(actionLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xffecfdf5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xffa7f3d0)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Color(0xff059669)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  status,
+                  style: const TextStyle(color: Color(0xff065f46), fontWeight: FontWeight.w500, height: 1.4),
+                ),
+              ),
+            ],
           ),
         ),
       ],

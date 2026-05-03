@@ -1,4 +1,7 @@
 @page "/"
+@rendermode InteractiveServer
+@using AgriPod.Shared
+@inject IHttpClientFactory HttpClientFactory
 
 <PageTitle>Agri-PoD Operations</PageTitle>
 
@@ -16,24 +19,24 @@
 
 <section class="metric-grid">
     <div class="metric-card">
-        <span>Stock on hand</span>
-        <strong>48,260</strong>
-        <p>kg seed and fertilizer tracked across 6 districts</p>
+        <span>Registered farmers</span>
+        <strong>@_summary.FarmersRegistered</strong>
+        <p>captured from portal and offline mobile sync</p>
     </div>
     <div class="metric-card">
-        <span>Deliveries today</span>
-        <strong>184</strong>
-        <p>132 completed with GPS and OTP proof</p>
+        <span>Approved farmers</span>
+        <strong>@_summary.FarmersApproved</strong>
+        <p>eligible for allocation and PoD workflows</p>
     </div>
     <div class="metric-card warning">
-        <span>Sync backlog</span>
-        <strong>27</strong>
-        <p>offline mutations waiting from Kono and Pujehun</p>
+        <span>Open exceptions</span>
+        <strong>@_summary.OpenExceptions</strong>
+        <p>cases waiting for district or audit review</p>
     </div>
     <div class="metric-card">
-        <span>Vehicles active</span>
-        <strong>39</strong>
-        <p>last GPS heartbeat within 15 minutes</p>
+        <span>Active campaigns</span>
+        <strong>@_summary.CampaignsActive</strong>
+        <p>approved distribution plans in operation</p>
     </div>
 </section>
 
@@ -42,9 +45,9 @@
         <div class="panel-header">
             <div>
                 <h2>Delivery control queue</h2>
-                <p>Proof packages that need supervisor attention.</p>
+                <p>Proof packages that need supervisor attention and exception closure.</p>
             </div>
-            <button type="button">Review exceptions</button>
+            <a class="button-link" href="compliance">Review exceptions</a>
         </div>
         <table>
             <thead>
@@ -119,6 +122,14 @@
 </section>
 
 @code {
+    private ReportSummaryDto _summary = new(0, 0, 0, 0, 0, 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        _summary = await client.GetFromJsonAsync<ReportSummaryDto>("/api/v1/reports/summary") ?? _summary;
+    }
+
     private static readonly DeliveryRow[] Deliveries =
     [
         new("POD-SL-2026-0018", "Bombali", "Makeni Farmers Union", "OTP + face + GPS", "Ready", "ok"),

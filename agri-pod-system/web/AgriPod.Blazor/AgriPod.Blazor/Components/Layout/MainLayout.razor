@@ -10,17 +10,22 @@
 
     <main>
         <div class="top-row">
-            <div>
+            <div class="top-row-title">
                 <strong>National command portal</strong>
-                <span>@(AuthState.IsAuthenticated ? $"{AuthState.Email} - {AuthState.Role}" : "Sign in required")</span>
+                <span>@(AuthState.IsAuthenticated ? $"{AuthState.Email} / {AuthState.Role}" : "Sign in required")</span>
+            </div>
+            <div class="top-row-status" aria-label="System status">
+                <span class="system-chip ok">API online</span>
+                <span class="system-chip sync">Offline ready</span>
+                <span class="system-chip warn">Demo data</span>
             </div>
             @if (AuthState.IsAuthenticated)
             {
-                <button class="sync-button" type="button" @onclick="SignOut">Sign out</button>
+                <button class="top-action" type="button" @onclick="SignOut">Sign out</button>
             }
             else
             {
-                <button class="sync-button" type="button" @onclick="SignIn">Sign in</button>
+                <button class="top-action" type="button" @onclick="SignIn">Sign in</button>
             }
         </div>
 
