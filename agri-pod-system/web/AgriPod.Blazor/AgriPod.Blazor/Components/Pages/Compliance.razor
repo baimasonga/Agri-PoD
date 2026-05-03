@@ -32,10 +32,7 @@
                         <td>
                             @if (item.Status == "Open")
                             {
-                                <form class="inline-form" method="post" action="/portal-actions/compliance/resolve">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit">Resolve</button>
-                                </form>
+                                <button type="button" @onclick="() => Resolve(item.Id)">Resolve</button>
                             }
                         </td>
                     </tr>

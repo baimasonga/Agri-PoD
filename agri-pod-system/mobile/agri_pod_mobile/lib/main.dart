@@ -108,8 +108,13 @@ class _FieldOfficerShellState extends State<FieldOfficerShell> {
   }
 
   Future<void> _sync() async {
-    await widget.syncService.syncPending();
+    final count = await widget.syncService.syncPending();
     await _refreshPending();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Successfully synced $count items to national portal.')),
+      );
+    }
   }
 
   @override
@@ -193,7 +198,13 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
       },
     );
     await widget.onSaved();
-    setState(() => _status = 'Farmer registration queued for district review.');
+    setState(() {
+      _status = 'Farmer registration queued for district review.';
+      _name.clear();
+      _nationalId.clear();
+      _phone.clear();
+      _community.clear();
+    });
   }
 
   @override

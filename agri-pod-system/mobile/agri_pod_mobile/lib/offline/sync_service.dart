@@ -42,9 +42,10 @@ class SyncService {
     }
 
     if (batchMutations.isNotEmpty) {
-      final response = await _postJson(
-        '/api/v1/sync',
-        jsonEncode({
+      final response = await _httpClient.post(
+        _apiBaseUri.replace(path: '/api/v1/sync'),
+        headers: {'content-type': 'application/json'},
+        body: jsonEncode({
           'deviceId': 'SL-FIELD-DEVICE',
           'districtCode': 'WESTERN',
           'lastServerVersion': 0,
@@ -52,8 +53,10 @@ class SyncService {
         }),
       );
 
-      if (response >= 200 && response < 300) {
-        acceptedIds.addAll(batchMutations.map((row) => row['clientMutationId'] as String));
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final accepted = (body['acceptedMutations'] as List).cast<String>();
+        acceptedIds.addAll(accepted);
       }
     }
 

@@ -1,5 +1,6 @@
 using AgriPod.Shared;
 using AgriPod.Application.Abstractions;
+using AgriPod.Domain.Common;
 using AgriPod.Domain.Compliance;
 using AgriPod.Domain.Dispatch;
 using AgriPod.Domain.Farmers;
@@ -95,51 +96,54 @@ public sealed class SyncService(IAgriPodDbContext db)
 
     private async Task ApplyProofOfDeliveryAsync(string deviceId, ProofOfDeliverySyncPayload payload, string jsonPayload, CancellationToken cancellationToken)
     {
+        // 1. Idempotency
+        var alreadyProcessed = await db.Deliveries
+            .AnyAsync(x => x.ProofEvents.Any(p => p.OfflineTransactionId == payload.OfflineTransactionId), cancellationToken);
+
+        if (alreadyProcessed) return;
+
         var messages = new List<string>();
         var farmer = await db.Farmers.FirstOrDefaultAsync(x => x.BarcodeToken == payload.FarmerBarcode, cancellationToken);
-        if (farmer is null)
-        {
-            messages.Add("Farmer barcode not found.");
-        }
-
         var allocation = farmer is null
             ? null
             : await db.FarmerAllocations.FirstOrDefaultAsync(x => x.FarmerId == farmer.Id, cancellationToken);
 
-        if (allocation is null || !allocation.CanDeliver(payload.Quantity))
-        {
-            messages.Add("Allocation missing or quantity exceeds entitlement.");
-        }
-
+        var campaign = allocation is not null ? await db.Campaigns.FirstOrDefaultAsync(x => x.Id == allocation.CampaignId, cancellationToken) : null;
         var deliveries = await db.Deliveries.Include(x => x.Lines).Include(x => x.ProofEvents).ToListAsync(cancellationToken);
         var delivery = deliveries.FirstOrDefault(x => x.Lines.Any(line => line.Barcode == payload.PackageBarcode));
-        if (delivery is null)
-        {
-            messages.Add("Package barcode was not found on a delivery.");
-        }
 
-        if (string.IsNullOrWhiteSpace(payload.OtpCode))
-        {
-            messages.Add("OTP is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(payload.FaceCaptureReference))
-        {
-            messages.Add("Face capture reference is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(payload.PhotoEvidenceReference))
-        {
-            messages.Add("Photo evidence is required.");
-        }
+        if (farmer is null) messages.Add("Farmer barcode not found.");
+        if (allocation is null || !allocation.CanDeliver(payload.Quantity)) messages.Add("Allocation missing or quantity exceeds entitlement.");
+        if (delivery is null) messages.Add("Package barcode was not found on a delivery.");
+        if (campaign is null) messages.Add("Campaign not found.");
+        if (string.IsNullOrWhiteSpace(payload.OtpCode)) messages.Add("OTP is required.");
+        if (string.IsNullOrWhiteSpace(payload.FaceCaptureReference)) messages.Add("Face capture reference is required.");
+        if (string.IsNullOrWhiteSpace(payload.PhotoEvidenceReference)) messages.Add("Photo evidence is required.");
 
         var vehiclePing = await db.VehicleLocations
             .Where(x => x.VehicleRegistration == payload.VehicleRegistration)
             .ToListAsync(cancellationToken);
 
-        if (vehiclePing.Count == 0)
+        if (vehiclePing.Count == 0) messages.Add("Vehicle GPS proximity could not be validated.");
+
+        // 2. GPS Geofencing
+        if (campaign is not null)
         {
-            messages.Add("Vehicle GPS proximity could not be validated.");
+            var distance = GpsDistanceCalculator.CalculateDistance(payload.Latitude, payload.Longitude, campaign.SiteLatitude, campaign.SiteLongitude);
+            if (distance > (double)campaign.GpsRadiusMeters)
+            {
+                messages.Add($"GPS Geofence Breach: Delivery attempt at {distance:F0}m from site (Max: {campaign.GpsRadiusMeters}m).");
+            }
+        }
+
+        // 3. Inventory Availability
+        var stockLot = allocation is not null 
+            ? await db.StockLots.FirstOrDefaultAsync(x => x.ItemId == allocation.InventoryItemId && x.Quantity >= payload.Quantity, cancellationToken)
+            : null;
+        
+        if (stockLot is null)
+        {
+            messages.Add("Insufficient inventory in stock lots for this item.");
         }
 
         if (messages.Count > 0)
@@ -150,6 +154,7 @@ public sealed class SyncService(IAgriPodDbContext db)
         }
 
         allocation!.MarkDelivered(payload.Quantity);
+        stockLot!.Adjust(-payload.Quantity);
         delivery!.MarkDelivered(
             payload.Latitude,
             payload.Longitude,

@@ -31,17 +31,13 @@
                         <td>@campaign.StartsOn.ToString("MMM dd") - @campaign.EndsOn.ToString("MMM dd")</td>
                         <td><span class="state @StatusClass(campaign.Status)">@campaign.Status</span></td>
                         <td>
-                            @if (campaign.Status == "PendingApproval")
-                            {
-                                <form class="inline-form" method="post" action="/portal-actions/campaigns/approve">
-                                    <input type="hidden" name="id" value="@campaign.Id" />
-                                    <button type="submit">Approve</button>
-                                </form>
-                            }
-                            <form class="inline-form" method="post" action="/portal-actions/campaigns/allocate">
-                                <input type="hidden" name="id" value="@campaign.Id" />
-                                <button class="secondary-button" type="submit">Allocate</button>
-                            </form>
+                            <div class="inline-actions">
+                                @if (campaign.Status == "PendingApproval")
+                                {
+                                    <button type="button" @onclick="() => Approve(campaign.Id)">Approve</button>
+                                }
+                                <button class="secondary-button" type="button" @onclick="() => Allocate(campaign.Id)">Allocate</button>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -50,12 +46,12 @@
     </div>
     <div class="panel">
         <h2>Create campaign</h2>
-        <form class="form-stack" method="post" action="/portal-actions/campaigns/create">
-            <label>Name <input name="name" @bind="_form.Name" /></label>
-            <label>District <input name="districtCode" @bind="_form.DistrictCode" /></label>
-            <label>Value chain <input name="valueChain" @bind="_form.ValueChain" /></label>
-            <button type="submit">Create campaign</button>
-        </form>
+        <div class="form-stack">
+            <label>Name <input @bind="_form.Name" /></label>
+            <label>District <input @bind="_form.DistrictCode" /></label>
+            <label>Value chain <input @bind="_form.ValueChain" /></label>
+            <button type="button" @onclick="CreateCampaign">Create campaign</button>
+        </div>
     </div>
 </section>
 
