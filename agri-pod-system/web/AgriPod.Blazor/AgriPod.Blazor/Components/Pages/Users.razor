@@ -4,74 +4,102 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Users</PageTitle>
+<PageTitle>Obsidian Field | Identity Hub</PageTitle>
 
-<section class="page-section">
-    <h1>User management</h1>
-    <p>Administrators create users, assign roles, and restrict access by operational responsibility and district.</p>
-</section>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Identity Hub</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">Personnel Clearance & Role-Based Access Control</p>
+</div>
 
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <section class="notice">@_message</section>
-}
+<div class="hud-panel" style="margin-bottom: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 class="hud-title" style="font-size: 1.2rem; margin: 0;">Operational Personnel</h2>
+        <button @onclick="LoadUsers">Sync Roster</button>
+    </div>
 
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header">
-            <div>
-                <h2>Live role directory</h2>
-                <p>@_users.Count users loaded from the API.</p>
-            </div>
-            <button type="button" @onclick="LoadUsers">Refresh</button>
-        </div>
+    <div class="tech-table-container">
         <table>
-            <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Role</th><th>District</th><th>Status</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>SUBJECT</th>
+                    <th>CLEARANCE</th>
+                    <th>ZONE</th>
+                    <th>COMMS LINK</th>
+                    <th style="text-align: right;">STATUS</th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach (var user in _users)
                 {
                     <tr>
-                        <td>@user.FullName</td>
-                        <td>@user.Email</td>
-                        <td>@user.Phone</td>
-                        <td>@user.Role</td>
-                        <td>@user.DistrictCode</td>
-                        <td><span class="state @(user.IsActive ? "ok" : "danger")">@(user.IsActive ? "Active" : "Inactive")</span></td>
+                        <td>
+                            <div style="font-weight: 900; color: var(--ink);">@user.FullName.ToUpper()</div>
+                            <div style="font-size: 0.65rem; color: var(--muted); font-weight: 800;">@user.Email</div>
+                        </td>
+                        <td>
+                             <span style="font-size: 0.6rem; font-weight: 900; border: 1px solid var(--secondary); padding: 0.2rem 0.4rem; color: var(--secondary);">@user.Role.ToUpper()</span>
+                        </td>
+                        <td style="font-weight: 700;">@user.DistrictCode</td>
+                        <td style="font-family: monospace; font-size: 0.75rem; color: var(--muted);">@user.Phone</td>
+                        <td style="text-align: right;">
+                            <span class="dot" style="color: @(user.IsActive ? "var(--primary)" : "var(--accent)"); background: currentColor;"></span>
+                            <span style="font-size: 0.7rem; font-weight: 900; color: @(user.IsActive ? "var(--primary)" : "var(--accent)");">@(user.IsActive ? "ACTIVE" : "REVOKED")</span>
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
-    <div class="panel">
-        <h2>Create demo user</h2>
-        <form class="form-stack" method="post" action="/portal-actions/users/create">
-            <label>Full name <input name="fullName" @bind="_form.FullName" /></label>
-            <label>Email <input name="email" @bind="_form.Email" /></label>
-            <label>Phone <input name="phone" @bind="_form.Phone" /></label>
-            <label>Role <input name="role" @bind="_form.Role" /></label>
-            <label>District <input name="districtCode" @bind="_form.DistrictCode" /></label>
-            <button type="submit">Create user</button>
-        </form>
-    </div>
-</section>
+</div>
 
-<section class="panel">
-    <h2>Available roles</h2>
-    <div class="flow-strip">
-        <span>SystemAdministrator</span><span>ProjectManager</span><span>ProcurementOfficer</span><span>WarehouseManager</span><span>DistrictCoordinator</span><span>FieldOfficer</span><span>Driver</span><span>MonitoringEvaluationOfficer</span><span>Auditor</span>
+<div style="display: grid; grid-template-columns: 400px 1fr; gap: 2rem;">
+    <div class="hud-panel" style="background: rgba(59, 130, 246, 0.02); border-color: rgba(59, 130, 246, 0.2);">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--secondary);">Provision Subject</h2>
+        <div class="hud-input-group">
+            <label>FULL NAME</label>
+            <input @bind="_form.FullName" />
+        </div>
+        <div class="hud-input-group">
+            <label>SECURE EMAIL</label>
+            <input @bind="_form.Email" />
+        </div>
+        <div class="hud-input-group">
+            <label>ROLE ASSIGNMENT</label>
+            <select @bind="_form.Role" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 1rem; width: 100%; color: white;">
+                <option value="SystemAdministrator">System Administrator</option>
+                <option value="ProjectManager">Project Manager</option>
+                <option value="FieldOfficer">Field Officer</option>
+                <option value="Driver">Driver</option>
+                <option value="Auditor">Auditor</option>
+            </select>
+        </div>
+        <div class="hud-input-group">
+            <label>ZONE CODE</label>
+            <input @bind="_form.DistrictCode" />
+        </div>
+        <button style="width: 100%; height: 3.5rem; border-color: var(--secondary); color: var(--secondary);" @onclick="CreateUser">Commit Provision</button>
     </div>
-</section>
+
+    <div class="hud-panel">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem;">Authorization Levels</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+            @foreach (var role in Roles)
+            {
+                <div style="padding: 1rem; border: 1px solid var(--border); font-size: 0.65rem; font-weight: 900; color: var(--muted);">
+                    @role.ToUpper()
+                </div>
+            }
+        </div>
+    </div>
+</div>
 
 @code {
     private readonly List<UserDto> _users = [];
     private string? _message;
     private UserForm _form = UserForm.Default();
+    private static readonly string[] Roles = ["SystemAdministrator", "ProjectManager", "ProcurementOfficer", "WarehouseManager", "DistrictCoordinator", "FieldOfficer", "Driver", "Auditor"];
 
-    protected override async Task OnInitializedAsync()
-    {
-        _message = QueryMessage();
-        await LoadUsers();
-    }
+    protected override async Task OnInitializedAsync() => await LoadUsers();
 
     private async Task LoadUsers()
     {
@@ -82,25 +110,11 @@
 
     private async Task CreateUser()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("AgriPodApi");
-            var request = new CreateUserRequest(_form.FullName, _form.Email, _form.Phone, _form.Role, _form.DistrictCode);
-            var response = await client.PostAsJsonAsync("/api/v1/users", request);
-            if (!response.IsSuccessStatusCode)
-            {
-                _message = $"Create user failed: {response.StatusCode}";
-                return;
-            }
-
-            _message = $"Created user {_form.Email}.";
-            _form = UserForm.Default();
-            await LoadUsers();
-        }
-        catch (Exception ex)
-        {
-            _message = $"Create user failed: {ex.Message}";
-        }
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var request = new CreateUserRequest(_form.FullName, _form.Email, _form.Phone, _form.Role, _form.DistrictCode);
+        var response = await client.PostAsJsonAsync("/api/v1/users", request);
+        _message = response.IsSuccessStatusCode ? $"Subject {_form.Email} Provisioned." : "Provisioning failed.";
+        await LoadUsers();
     }
 
     private sealed class UserForm
@@ -108,23 +122,8 @@
         public string FullName { get; set; } = "";
         public string Email { get; set; } = "";
         public string Phone { get; set; } = "";
-        public string Role { get; set; } = "";
-        public string DistrictCode { get; set; } = "";
-
-        public static UserForm Default() => new()
-        {
-            FullName = "Warehouse Officer",
-            Email = $"warehouse{Random.Shared.Next(100,999)}@agripod.local",
-            Phone = "+23276000020",
-            Role = "WarehouseManager",
-            DistrictCode = "BOMBALI"
-        };
-    }
-
-    private string? QueryMessage()
-    {
-        var query = new Uri(Navigation.Uri).Query;
-        const string key = "?message=";
-        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
+        public string Role { get; set; } = "FieldOfficer";
+        public string DistrictCode { get; set; } = "BOMBALI";
+        public static UserForm Default() => new() { FullName = "AGENT SMITH", Email = "smith@agripod.local", Phone = "+23276000020" };
     }
 }

@@ -4,120 +4,144 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Procurement</PageTitle>
+<PageTitle>Obsidian Field | Supply Chain</PageTitle>
 
-<section class="page-section">
-    <h1>Procurement and stock receiving</h1>
-    <p>Purchased inputs are registered by supplier, quantity, batch, quality checks, expiry, and package barcode generation.</p>
-</section>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Supply Chain</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">Procurement Intelligence & National Stock Intake</p>
+</div>
 
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <section class="notice">@_message</section>
-}
+<div class="metric-row">
+    <div class="hud-panel metric-widget" style="border-color: var(--primary);">
+        <span class="metric-label">Active POs</span>
+        <div class="metric-value">@_orders.Count</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--primary); font-weight: 800;">PENDING RECEIPT: VALID</div>
+    </div>
+    
+    <div class="hud-panel metric-widget" style="border-color: var(--secondary);">
+        <span class="metric-label">Authorized Suppliers</span>
+        <div class="metric-value" style="color: var(--secondary);">@_suppliers.Count</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--secondary); font-weight: 800;">VENDORS: AUDITED</div>
+    </div>
 
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header"><h2>Live purchase orders</h2><button type="button" @onclick="Load">Refresh</button></div>
+    <div class="hud-panel metric-widget" style="border-color: var(--accent);">
+        <span class="metric-label">Quality Rejections</span>
+        <div class="metric-value" style="color: var(--accent);">00</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--accent); font-weight: 800;">BATCH INTEGRITY: HIGH</div>
+    </div>
+</div>
+
+<div class="hud-panel" style="margin-bottom: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 class="hud-title" style="font-size: 1.2rem; margin: 0;">Global Purchase Ledger</h2>
+        <button @onclick="Load">Sync Logistics</button>
+    </div>
+
+    <div class="tech-table-container">
         <table>
-            <thead><tr><th>PO</th><th>Supplier</th><th>Item</th><th>Quantity</th><th>Batch</th><th>Status</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>PO NUMBER</th>
+                    <th>SUPPLIER SUBJECT</th>
+                    <th>COMMODITY</th>
+                    <th>QUANTITY</th>
+                    <th>BATCH</th>
+                    <th style="text-align: right;">STATUS</th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach (var po in _orders)
                 {
-                    <tr><td>@po.PurchaseNumber</td><td>@SupplierName(po.SupplierId)</td><td>@ItemName(po.InventoryItemId)</td><td>@po.Quantity.ToString("N0")</td><td>@po.BatchNumber</td><td><span class="state ok">Submitted</span></td></tr>
+                    <tr>
+                        <td style="font-weight: 900; color: var(--primary);">@po.PurchaseNumber</td>
+                        <td style="font-weight: 700;">@SupplierName(po.SupplierId).ToUpper()</td>
+                        <td>@ItemName(po.InventoryItemId)</td>
+                        <td style="font-family: 'Syncopate', sans-serif; font-size: 0.7rem;">@po.Quantity.ToString("N0")</td>
+                        <td style="font-family: monospace; font-size: 0.75rem; color: var(--muted);">@po.BatchNumber</td>
+                        <td style="text-align: right;">
+                            <span class="dot" style="color: var(--primary); background: currentColor;"></span>
+                            <span style="font-size: 0.7rem; font-weight: 900; color: var(--primary);">SUBMITTED</span>
+                        </td>
+                    </tr>
                 }
             </tbody>
         </table>
     </div>
-    <div class="panel">
-        <h2>Create supplier</h2>
-        <form class="form-stack" method="post" action="/portal-actions/procurement/create-supplier">
-            <label>Name <input name="name" @bind="_supplier.Name" /></label>
-            <label>Phone <input name="phone" @bind="_supplier.Phone" /></label>
-            <button type="submit">Create supplier</button>
-        </form>
-    </div>
-</section>
+</div>
 
-<section class="workbench">
-    <div class="panel">
-        <div class="panel-header compact">
-            <div>
-                <h2>Create purchase order</h2>
-                <p>Procurement officer submits purchased inputs for warehouse receipt.</p>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <div class="hud-panel" style="background: rgba(16, 185, 129, 0.02); border-color: rgba(16, 185, 129, 0.2);">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--primary);">Initialize Purchase Order</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="hud-input-group">
+                <label>PO DESIGNATION</label>
+                <input value="@($"PO-{DateTime.Today:yyyy}-{Random.Shared.Next(100,999)}")" />
             </div>
-        </div>
-        <form class="form-stack" method="post" action="/portal-actions/procurement/create-purchase-order">
-            <label>Purchase number <input name="purchaseNumber" value="@($"PO-{DateTime.Today:yyyy}-{Random.Shared.Next(100,999)}")" /></label>
-            <label>
-                Supplier
-                <select name="supplierId">
+            <div class="hud-input-group">
+                <label>SUPPLIER NODE</label>
+                <select style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 1rem; width: 100%; color: white;">
                     @foreach (var supplier in _suppliers)
                     {
                         <option value="@supplier.Id">@supplier.Name</option>
                     }
                 </select>
-            </label>
-            <label>
-                Input item
-                <select name="inventoryItemId">
-                    @foreach (var item in _items)
-                    {
-                        <option value="@item.Id">@item.Name (@item.Sku)</option>
-                    }
-                </select>
-            </label>
-            <label>Quantity <input name="quantity" value="2500" /></label>
-            <label>Batch number <input name="batchNumber" value="@($"BT-{Random.Shared.Next(1000,9999)}")" /></label>
-            <button type="submit">Create purchase order</button>
-        </form>
-    </div>
-    <div class="panel">
-        <div class="panel-header compact">
-            <div>
-                <h2>Receive stock</h2>
-                <p>Warehouse receipt creates traceable stock lots for package barcode generation.</p>
             </div>
         </div>
-        <form class="form-stack" method="post" action="/portal-actions/procurement/receive-stock">
-            <label>
-                Input item
-                <select name="inventoryItemId">
-                    @foreach (var item in _items)
-                    {
-                        <option value="@item.Id">@item.Name (@item.UnitOfMeasure)</option>
-                    }
-                </select>
-            </label>
-            <label>
-                Warehouse
-                <select name="warehouseId">
-                    @foreach (var warehouse in _warehouses)
-                    {
-                        <option value="@warehouse.Id">@warehouse.Name - @warehouse.District</option>
-                    }
-                </select>
-            </label>
-            <label>Lot code <input name="lotCode" value="@($"LOT-{DateTime.Today:MMdd}-{Random.Shared.Next(100,999)}")" /></label>
-            <label>Quantity <input name="quantity" value="1200" /></label>
-            <label>Expiry <input name="expiresOn" type="date" value="@DateTime.Today.AddMonths(18).ToString("yyyy-MM-dd")" /></label>
-            <button type="submit">Receive stock</button>
-        </form>
+        <div class="hud-input-group">
+            <label>COMMODITY SKU</label>
+            <select style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 1rem; width: 100%; color: white;">
+                @foreach (var item in _items)
+                {
+                    <option value="@item.Id">@item.Name (@item.Sku)</option>
+                }
+            </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="hud-input-group">
+                <label>QUANTITY</label>
+                <input value="2500" />
+            </div>
+            <div class="hud-input-group">
+                <label>BATCH ID</label>
+                <input value="@($"BT-{Random.Shared.Next(1000,9999)}")" />
+            </div>
+        </div>
+        <button style="width: 100%; height: 3.5rem;">Commit Purchase</button>
     </div>
-</section>
 
-<section class="panel">
-    <div class="panel-header compact">
-        <h2>Supplier directory</h2>
-        <span class="state sync">@_suppliers.Count suppliers</span>
+    <div class="hud-panel" style="background: rgba(59, 130, 246, 0.02); border-color: rgba(59, 130, 246, 0.2);">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--secondary);">Inbound Stock Receipt</h2>
+        <div class="hud-input-group">
+            <label>INPUT ITEM</label>
+            <select style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 1rem; width: 100%; color: white;">
+                @foreach (var item in _items)
+                {
+                    <option value="@item.Id">@item.Name (@item.UnitOfMeasure)</option>
+                }
+            </select>
+        </div>
+        <div class="hud-input-group">
+            <label>TARGET WAREHOUSE</label>
+            <select style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 1rem; width: 100%; color: white;">
+                @foreach (var warehouse in _warehouses)
+                {
+                    <option value="@warehouse.Id">@warehouse.Name - @warehouse.District</option>
+                }
+            </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="hud-input-group">
+                <label>LOT CODE</label>
+                <input value="@($"LOT-{DateTime.Today:MMdd}-{Random.Shared.Next(100,999)}")" />
+            </div>
+            <div class="hud-input-group">
+                <label>QUANTITY RECEIVED</label>
+                <input value="1200" />
+            </div>
+        </div>
+        <button style="width: 100%; height: 3.5rem; border-color: var(--secondary); color: var(--secondary);">Initialize Stock Lot</button>
     </div>
-    <div class="flow-strip">
-        @foreach (var supplier in _suppliers)
-        {
-            <span>@supplier.Name</span>
-        }
-    </div>
-</section>
+</div>
 
 @code {
     private readonly List<SupplierDto> _suppliers = [];
@@ -125,13 +149,8 @@
     private readonly List<InventoryItemDto> _items = [];
     private readonly List<WarehouseDto> _warehouses = [];
     private string? _message;
-    private SupplierForm _supplier = SupplierForm.Default();
 
-    protected override async Task OnInitializedAsync()
-    {
-        _message = QueryMessage();
-        await Load();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
@@ -143,42 +162,6 @@
         _warehouses.AddRange(await client.GetFromJsonAsync<List<WarehouseDto>>("/api/v1/warehouses") ?? []);
     }
 
-    private async Task CreateSupplier()
-    {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("AgriPodApi");
-            var response = await client.PostAsJsonAsync("/api/v1/procurement/suppliers", new CreateSupplierRequest(_supplier.Name, _supplier.Phone));
-            if (!response.IsSuccessStatusCode)
-            {
-                _message = $"Create supplier failed: {response.StatusCode}";
-                return;
-            }
-
-            _message = $"Created supplier {_supplier.Name}.";
-            _supplier = SupplierForm.Default();
-            await Load();
-        }
-        catch (Exception ex)
-        {
-            _message = $"Create supplier failed: {ex.Message}";
-        }
-    }
-
-    private string SupplierName(Guid id) => _suppliers.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
-    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
-
-    private sealed class SupplierForm
-    {
-        public string Name { get; set; } = "";
-        public string Phone { get; set; } = "";
-        public static SupplierForm Default() => new() { Name = $"Supplier {Random.Shared.Next(100,999)}", Phone = "+23276002001" };
-    }
-
-    private string? QueryMessage()
-    {
-        var query = new Uri(Navigation.Uri).Query;
-        const string key = "?message=";
-        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
-    }
+    private string SupplierName(Guid id) => _suppliers.FirstOrDefault(x => x.Id == id)?.Name ?? "UNKNOWN";
+    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? "UNKNOWN";
 }

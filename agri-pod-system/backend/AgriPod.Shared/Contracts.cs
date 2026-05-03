@@ -244,3 +244,21 @@ public sealed record ReportSummaryDto(
     int DeliveriesCompleted,
     int OpenExceptions,
     int OfflineMutationsPending);
+
+// --- Logistics & Vehicle Tracking ---
+
+public sealed record VehicleDeviceDto(Guid Id, string DeviceId, string VehicleRegistration, string SerialNumber, string Status, DateTimeOffset RegisteredAt);
+
+public sealed record RegisterVehicleDeviceRequest(string DeviceId, string VehicleRegistration, string SerialNumber);
+
+public sealed record GpsPingDto(string DeviceId, decimal Latitude, decimal Longitude, decimal SpeedKph, decimal Heading, DateTimeOffset Timestamp);
+
+public sealed record BulkGpsPingRequest(string DeviceId, IReadOnlyCollection<GpsPingDto> Pings);
+
+public sealed record RouteDeviationDto(Guid Id, string VehicleRegistration, decimal Latitude, decimal Longitude, decimal DistanceFromRouteMeters, DateTimeOffset DetectedAt);
+
+public sealed record StopDetectionDto(Guid Id, string VehicleRegistration, decimal Latitude, decimal Longitude, TimeSpan Duration, DateTimeOffset StartedAt);
+
+public sealed record VehicleArrivalValidationDto(Guid Id, string VehicleRegistration, Guid CampaignId, bool Arrived, decimal DistanceFromSiteMeters, DateTimeOffset ValidationTime);
+
+public sealed record TransferStockRequest(Guid ItemId, Guid FromWarehouseId, Guid ToWarehouseId, decimal Quantity, string LotCode);

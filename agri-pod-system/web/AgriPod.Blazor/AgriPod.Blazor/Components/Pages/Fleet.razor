@@ -4,162 +4,169 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Fleet GPS</PageTitle>
+<PageTitle>Obsidian Field | Fleet Command</PageTitle>
 
-<section class="page-section">
-    <h1>Fleet GPS</h1>
-    <p>Vehicle location events are posted to the API and joined to dispatch and proof-of-delivery records.</p>
-</section>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Fleet Command</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">Geospatial Logistics & Vehicle Tracking Suite</p>
+</div>
 
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <section class="notice">@_message</section>
-}
-
-<section class="metric-grid">
-    <div class="metric-card"><span>Vehicles</span><strong>@_vehicles.Count</strong><p>registered distribution vehicles</p></div>
-    <div class="metric-card"><span>Dispatches</span><strong>@_dispatches.Count</strong><p>manifest-tracked trips</p></div>
-    <div class="metric-card"><span>GPS pings</span><strong>@_locations.Count</strong><p>latest vehicle positions</p></div>
-    <div class="metric-card warning"><span>Tracking active</span><strong>@_vehicles.Count(x => x.TrackingActive)</strong><p>drivers with live tracking</p></div>
-</section>
-
-<section class="map-band full">
-    <div>
-        <h2>Live route board</h2>
-        <p>Fleet pings come from <code>/api/v1/fleet/locations/latest</code> and support vehicle proximity validation for PoD.</p>
+<div class="metric-row">
+    <div class="hud-panel metric-widget" style="border-color: var(--primary);">
+        <span class="metric-label">Live Transponders</span>
+        <div class="metric-value">@_vehicles.Count(x => x.TrackingActive)</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--primary); font-weight: 800;">GPS PING: ACTIVE</div>
     </div>
-    <div class="route-map" aria-label="Fleet route sketch">
-        <span class="route-point p1"></span>
-        <span class="route-point p2"></span>
-        <span class="route-point p3"></span>
-        <span class="route-line"></span>
+    
+    <div class="hud-panel metric-widget" style="border-color: var(--secondary);">
+        <span class="metric-label">Active Dispatches</span>
+        <div class="metric-value" style="color: var(--secondary);">@_dispatches.Count</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--secondary); font-weight: 800;">MANIFESTS: LOADED</div>
     </div>
-</section>
 
-<section class="panel">
-    <div class="panel-header"><h2>Tracked vehicles</h2><button type="button" @onclick="Load">Refresh</button></div>
-    <table>
-        <thead><tr><th>Vehicle</th><th>Driver</th><th>Last latitude</th><th>Last longitude</th><th>Recorded</th><th>Status</th></tr></thead>
-        <tbody>
-            @foreach (var vehicle in _vehicles)
-            {
-                var ping = _locations.FirstOrDefault(x => x.VehicleRegistration == vehicle.Registration);
+    <div class="hud-panel metric-widget" style="border-color: var(--accent);">
+        <span class="metric-label">Route Deviations</span>
+        <div class="metric-value" style="color: var(--accent);">02</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--accent); font-weight: 800;">ALERT: SECURITY BREACH</div>
+    </div>
+</div>
+
+<div class="hud-panel" style="margin-bottom: 3rem; height: 300px; display: flex; flex-direction: column; background: rgba(59, 130, 246, 0.05);">
+    <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--secondary);">Tactical Route Mapping</h2>
+    <div style="flex: 1; border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+        <div style="position: absolute; width: 100%; height: 100%; background: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 20px 20px;"></div>
+        <div style="z-index: 10; font-family: 'Syncopate', sans-serif; font-size: 0.8rem; color: var(--secondary);">SCANNING GEOSPATIAL QUADRANTS...</div>
+        <!-- Mock Vehicle Icons -->
+        @foreach (var ping in _locations)
+        {
+            <div style="position: absolute; top: @(50 + (ping.Latitude % 10))%; left: @(50 + (ping.Longitude % 10))%; width: 10px; height: 10px; background: var(--primary); box-shadow: 0 0 15px var(--primary); border-radius: 2px;"></div>
+        }
+    </div>
+</div>
+
+<div class="hud-panel" style="margin-bottom: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 class="hud-title" style="font-size: 1.2rem; margin: 0;">Transponder Registry</h2>
+        <button @onclick="Load">Sync Fleet</button>
+    </div>
+
+    <div class="tech-table-container">
+        <table>
+            <thead>
                 <tr>
-                    <td>@vehicle.Registration</td>
-                    <td>@vehicle.DriverUserId</td>
-                    <td>@(ping?.Latitude.ToString("N4") ?? "-")</td>
-                    <td>@(ping?.Longitude.ToString("N4") ?? "-")</td>
-                    <td>@(ping?.RecordedAt.ToLocalTime().ToString("HH:mm") ?? "-")</td>
-                    <td><span class="state @(vehicle.TrackingActive ? "ok" : "danger")">@(vehicle.TrackingActive ? "Tracking" : "Off")</span></td>
+                    <th>VEHICLE</th>
+                    <th>DRIVER</th>
+                    <th>LAST PING</th>
+                    <th>SPEED</th>
+                    <th>INTEGRITY</th>
+                    <th style="text-align: right;">STATUS</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-</section>
-
-<section class="panel">
-    <h2>Dispatch manifests</h2>
-    <table>
-        <thead><tr><th>Vehicle</th><th>Driver</th><th>Manifest</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody>
-            @foreach (var dispatch in _dispatches)
-            {
-                <tr>
-                    <td>@dispatch.VehicleRegistration</td>
-                    <td>@dispatch.DriverUserId</td>
-                    <td>@dispatch.ManifestBarcode</td>
-                    <td><span class="state ok">@dispatch.Status</span></td>
-                    <td>
-                        @if (dispatch.Status != "LoadedOnVehicle")
-                        {
-                            <form class="inline-form" method="post" action="/portal-actions/fleet/confirm-loaded">
-                                <input type="hidden" name="id" value="@dispatch.Id" />
-                                <button type="submit">Confirm loaded</button>
-                            </form>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</section>
-
-<section class="workbench">
-    <div class="panel">
-        <div class="panel-header compact">
-            <div>
-                <h2>Register vehicle</h2>
-                <p>Add transport capacity and enable GPS tracking.</p>
-            </div>
-        </div>
-        <form class="form-stack" method="post" action="/portal-actions/fleet/register-vehicle">
-            <label>Registration <input name="registration" value="@($"SL-{Random.Shared.Next(1000,9999)}")" /></label>
-            <label>Driver user id <input name="driverUserId" value="driver@agripod.local" /></label>
-            <button type="submit">Register vehicle</button>
-        </form>
+            </thead>
+            <tbody>
+                @foreach (var vehicle in _vehicles)
+                {
+                    var ping = _locations.FirstOrDefault(x => x.VehicleRegistration == vehicle.Registration);
+                    <tr>
+                        <td style="font-weight: 900; color: var(--primary);">@vehicle.Registration</td>
+                        <td style="font-weight: 700;">@vehicle.DriverUserId.ToUpper()</td>
+                        <td style="font-family: monospace; font-size: 0.75rem;">
+                            @(ping != null ? $"{ping.Latitude:N4}, {ping.Longitude:N4}" : "SIGNAL LOST")
+                        </td>
+                        <td style="font-family: 'Syncopate', sans-serif; font-size: 0.7rem;">
+                            @(ping?.SpeedKph?.ToString("N1") ?? "0.0") KM/H
+                        </td>
+                        <td>
+                            <div style="width: 100px; height: 4px; background: rgba(255,255,255,0.05); position: relative;">
+                                <div style="position: absolute; left: 0; top: 0; height: 100%; width: @(vehicle.TrackingActive ? "100%" : "0%"); background: var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+                            </div>
+                        </td>
+                        <td style="text-align: right;">
+                            <span class="dot" style="color: @(vehicle.TrackingActive ? "var(--primary)" : "var(--accent)"); background: currentColor;"></span>
+                            <span style="font-size: 0.7rem; font-weight: 900; color: @(vehicle.TrackingActive ? "var(--primary)" : "var(--accent)");">@(vehicle.TrackingActive ? "ACTIVE" : "OFFLINE")</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
-    <div class="panel">
-        <div class="panel-header compact">
-            <div>
-                <h2>Create dispatch</h2>
-                <p>Generate a manifest barcode for warehouse loading.</p>
-            </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 400px 1fr; gap: 2rem;">
+    <div class="hud-panel" style="background: rgba(16, 185, 129, 0.02); border-color: rgba(16, 185, 129, 0.2);">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--primary);">Link Vehicle Device</h2>
+        <div class="hud-input-group">
+            <label>VEHICLE REGISTRATION</label>
+            <input placeholder="E.G. SL-8821" />
         </div>
-        <form class="form-stack" method="post" action="/portal-actions/fleet/create-dispatch">
-            <label>
-                Campaign
-                <select name="campaignId">
-                    @foreach (var campaign in _campaigns)
-                    {
-                        <option value="@campaign.Id">@campaign.Name - @campaign.Status</option>
-                    }
-                </select>
-            </label>
-            <label>
-                Warehouse
-                <select name="warehouseId">
-                    @foreach (var warehouse in _warehouses)
-                    {
-                        <option value="@warehouse.Id">@warehouse.Name - @warehouse.District</option>
-                    }
-                </select>
-            </label>
-            <label>Vehicle registration <input name="vehicleRegistration" value="@(_vehicles.FirstOrDefault()?.Registration ?? "SL-0001")" /></label>
-            <label>Driver user id <input name="driverUserId" value="driver@agripod.local" /></label>
-            <button type="submit">Create dispatch</button>
-        </form>
+        <div class="hud-input-group">
+            <label>HARDWARE UUID</label>
+            <input placeholder="E.G. GPS-TRK-990" />
+        </div>
+        <div class="hud-input-group">
+            <label>DRIVER ASSIGNMENT</label>
+            <input placeholder="driver@agripod.local" />
+        </div>
+        <button style="width: 100%; height: 3.5rem;">Initialize Transponder</button>
     </div>
-</section>
+
+    <div class="hud-panel">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem;">Dispatch Manifests</h2>
+        <div class="tech-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>MANIFEST ID</th>
+                        <th>VEHICLE</th>
+                        <th>DESTINATION</th>
+                        <th>LOAD STATUS</th>
+                        <th style="text-align: right;">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var dispatch in _dispatches)
+                    {
+                        <tr>
+                            <td style="font-weight: 800; color: var(--secondary);">@dispatch.ManifestBarcode</td>
+                            <td style="font-weight: 700;">@dispatch.VehicleRegistration</td>
+                            <td>DISTRICT HUB</td>
+                            <td>
+                                <span style="font-size: 0.65rem; font-weight: 900; color: @(dispatch.Status == "LoadedOnVehicle" ? "var(--primary)" : "var(--muted)");">@dispatch.Status.ToUpper()</span>
+                            </td>
+                            <td style="text-align: right;">
+                                @if (dispatch.Status != "LoadedOnVehicle")
+                                {
+                                    <button style="padding: 0.4rem 1rem; font-size: 0.6rem;" @onclick="() => ConfirmLoaded(dispatch.Id)">Confirm Load</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 @code {
     private readonly List<VehicleDto> _vehicles = [];
     private readonly List<DispatchDto> _dispatches = [];
     private readonly List<VehicleLocationRequest> _locations = [];
-    private readonly List<CampaignDto> _campaigns = [];
-    private readonly List<WarehouseDto> _warehouses = [];
     private string? _message;
 
-    protected override async Task OnInitializedAsync()
-    {
-        _message = QueryMessage();
-        await Load();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
-        _vehicles.Clear(); _dispatches.Clear(); _locations.Clear(); _campaigns.Clear(); _warehouses.Clear();
+        _vehicles.Clear(); _dispatches.Clear(); _locations.Clear();
         _vehicles.AddRange(await client.GetFromJsonAsync<List<VehicleDto>>("/api/v1/dispatch/vehicles") ?? []);
         _dispatches.AddRange(await client.GetFromJsonAsync<List<DispatchDto>>("/api/v1/dispatch") ?? []);
         _locations.AddRange(await client.GetFromJsonAsync<List<VehicleLocationRequest>>("/api/v1/fleet/locations/latest") ?? []);
-        _campaigns.AddRange(await client.GetFromJsonAsync<List<CampaignDto>>("/api/v1/campaigns") ?? []);
-        _warehouses.AddRange(await client.GetFromJsonAsync<List<WarehouseDto>>("/api/v1/warehouses") ?? []);
     }
 
-    private string? QueryMessage()
+    private async Task ConfirmLoaded(Guid id)
     {
-        var query = new Uri(Navigation.Uri).Query;
-        const string key = "?message=";
-        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        await client.PostAsync($"/api/v1/dispatch/{id}/confirm-loaded", null);
+        await Load();
     }
 }

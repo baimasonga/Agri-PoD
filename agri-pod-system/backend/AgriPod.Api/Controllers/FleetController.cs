@@ -11,15 +11,24 @@ namespace AgriPod.Api.Controllers;
 public sealed class FleetController(FleetTrackingService fleetTrackingService) : ControllerBase
 {
     [HttpGet("locations/latest")]
-    [ProducesResponseType<IReadOnlyCollection<VehicleLocationRequest>>(StatusCodes.Status200OK)]
     public async Task<IReadOnlyCollection<VehicleLocationRequest>> Latest(CancellationToken cancellationToken) =>
         await fleetTrackingService.LatestAsync(cancellationToken);
 
     [HttpPost("locations")]
-    [ProducesResponseType(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> Record(VehicleLocationRequest request, CancellationToken cancellationToken)
     {
         await fleetTrackingService.RecordLocationAsync(request, cancellationToken);
+        return Accepted();
+    }
+
+    [HttpPost("devices/register")]
+    public async Task<ActionResult<VehicleDeviceDto>> RegisterDevice(RegisterVehicleDeviceRequest request, CancellationToken cancellationToken) =>
+        Ok(await fleetTrackingService.RegisterDeviceAsync(request, cancellationToken));
+
+    [HttpPost("pings/bulk")]
+    public async Task<IActionResult> BulkRecord(BulkGpsPingRequest request, CancellationToken cancellationToken)
+    {
+        await fleetTrackingService.BulkRecordLocationAsync(request, cancellationToken);
         return Accepted();
     }
 }

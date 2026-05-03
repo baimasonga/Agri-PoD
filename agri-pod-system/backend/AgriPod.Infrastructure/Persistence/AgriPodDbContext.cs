@@ -21,6 +21,7 @@ public sealed class AgriPodDbContext(DbContextOptions<AgriPodDbContext> options)
     public DbSet<StockLot> StockLots => Set<StockLot>();
     public DbSet<Delivery> Deliveries => Set<Delivery>();
     public DbSet<VehicleLocation> VehicleLocations => Set<VehicleLocation>();
+    public DbSet<VehicleDevice> VehicleDevices => Set<VehicleDevice>();
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<District> Districts => Set<District>();
     public DbSet<Chiefdom> Chiefdoms => Set<Chiefdom>();
@@ -99,6 +100,16 @@ public sealed class AgriPodDbContext(DbContextOptions<AgriPodDbContext> options)
             entity.Property(x => x.Latitude).HasPrecision(9, 6);
             entity.Property(x => x.Longitude).HasPrecision(9, 6);
             entity.Property(x => x.SpeedKph).HasPrecision(6, 2);
+        });
+
+        modelBuilder.Entity<VehicleDevice>(entity =>
+        {
+            entity.HasIndex(x => x.DeviceId).IsUnique();
+            entity.HasIndex(x => x.VehicleRegistration).IsUnique();
+            entity.Property(x => x.DeviceId).HasMaxLength(64);
+            entity.Property(x => x.VehicleRegistration).HasMaxLength(32);
+            entity.Property(x => x.SerialNumber).HasMaxLength(128);
+            entity.Property(x => x.Status).HasMaxLength(40);
         });
 
         modelBuilder.Entity<AppUser>(entity =>

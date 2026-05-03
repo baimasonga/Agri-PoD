@@ -20,6 +20,7 @@ public interface IAgriPodDbContext
     DbSet<StockLot> StockLots { get; }
     DbSet<Delivery> Deliveries { get; }
     DbSet<VehicleLocation> VehicleLocations { get; }
+    DbSet<VehicleDevice> VehicleDevices { get; }
     DbSet<AppUser> AppUsers { get; }
     DbSet<District> Districts { get; }
     DbSet<Chiefdom> Chiefdoms { get; }
