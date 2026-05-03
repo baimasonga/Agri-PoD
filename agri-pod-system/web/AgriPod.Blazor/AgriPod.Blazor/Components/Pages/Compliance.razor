@@ -4,70 +4,75 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Compliance</PageTitle>
+<PageTitle>Obsidian Field | Security Ops</PageTitle>
 
-<section class="page-section">
-    <h1>Exceptions and audit</h1>
-    <p>Auditors and supervisors investigate duplicate deliveries, OTP failures, face mismatch, GPS mismatch, and missing stock.</p>
-</section>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Security Ops</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">Anomaly Detection & Protocol Enforcement Core</p>
+</div>
 
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <section class="notice">@_message</section>
-}
+<div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem;">
+    <div class="hud-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 class="hud-title" style="margin: 0; font-size: 1.2rem;">Anomalies Detected</h2>
+            <button @onclick="Load">Refresh SOC</button>
+        </div>
 
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header"><h2>Live exception cases</h2><button type="button" @onclick="Load">Refresh</button></div>
-        <table>
-            <thead><tr><th>Case</th><th>Severity</th><th>Description</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody>
-                @foreach (var item in _exceptions)
-                {
+        <div class="tech-table-container">
+            <table>
+                <thead>
                     <tr>
-                        <td>@item.CaseType</td>
-                        <td>@item.Severity</td>
-                        <td>@item.Description</td>
-                        <td><span class="state @(item.Status == "Open" ? "warn" : "ok")">@item.Status</span></td>
-                        <td>
-                            @if (item.Status == "Open")
-                            {
-                                <button type="button" @onclick="() => Resolve(item.Id)">Resolve</button>
-                            }
-                        </td>
+                        <th>PROTOCOL BREACH</th>
+                        <th>SEVERITY</th>
+                        <th>ENTITY</th>
+                        <th style="text-align: right;">OVERRIDE</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var item in _exceptions)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight: 900; color: var(--accent);">@item.CaseType.ToUpper()</div>
+                                <div style="font-size: 0.7rem; color: var(--muted); font-weight: 700;">@item.Description</div>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.65rem; font-weight: 900; color: var(--accent);">@item.Severity.ToUpper()</span>
+                            </td>
+                            <td>@item.Status</td>
+                            <td style="text-align: right;">
+                                @if (item.Status == "Open")
+                                {
+                                    <button class="btn-danger" style="padding: 0.4rem 1rem; font-size: 0.65rem;" @onclick="() => Resolve(item.Id)">Acknowledge</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="panel">
-        <h2>Audit log</h2>
-        <div class="node-list">
-            @foreach (var log in _auditLogs.Take(8))
+
+    <div class="hud-panel" style="background: rgba(59, 130, 246, 0.02); border-color: rgba(59, 130, 246, 0.2);">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--secondary);">System Audit Log</h2>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            @foreach (var log in _auditLogs.Take(10))
             {
-                <div class="node-row"><span class="node-dot ok"></span><div><strong>@log.Action</strong><small>@log.ActorUserId - @log.EntityType</small></div></div>
+                <div style="border-left: 2px solid var(--secondary); padding-left: 1rem;">
+                    <div style="font-size: 0.75rem; font-weight: 900; color: var(--ink);">@log.Action.ToUpper()</div>
+                    <div style="font-size: 0.65rem; color: var(--muted); margin-top: 0.25rem;">ACTOR: @log.ActorUserId.Split('@')[0].ToUpper()</div>
+                </div>
             }
         </div>
     </div>
-</section>
-
-<section class="panel">
-    <h2>Security controls</h2>
-    <div class="check-list">
-        <span>JWT authentication</span><span>Role-based access</span><span>Device binding</span><span>Encrypted biometric references</span><span>Audit log for every action</span>
-    </div>
-</section>
+</div>
 
 @code {
     private readonly List<ExceptionCaseDto> _exceptions = [];
     private readonly List<AuditLogDto> _auditLogs = [];
     private string? _message;
 
-    protected override async Task OnInitializedAsync()
-    {
-        _message = QueryMessage();
-        await Load();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
@@ -80,14 +85,7 @@
     private async Task Resolve(Guid id)
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
-        await client.PostAsJsonAsync($"/api/v1/compliance/exceptions/{id}/resolve", new ResolveExceptionCaseRequest("Resolved"));
+        await client.PostAsJsonAsync($"/api/v1/compliance/exceptions/{id}/resolve", new ResolveExceptionCaseRequest("HUD Acknowledge"));
         await Load();
-    }
-
-    private string? QueryMessage()
-    {
-        var query = new Uri(Navigation.Uri).Query;
-        const string key = "?message=";
-        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
     }
 }

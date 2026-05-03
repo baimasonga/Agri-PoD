@@ -4,49 +4,89 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Inventory</PageTitle>
+<PageTitle>Obsidian Field | Logistics</PageTitle>
 
-<section class="page-section">
-    <h1>Inventory</h1>
-    <p>Stock lots are backed by the live API and ready for Azure SQL online storage, SQL Server Express district replicas, and SQLite mobile reads.</p>
-</section>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Inventory Core</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">Stock Management & Distribution Logistics</p>
+</div>
 
-<section class="metric-grid">
-    <div class="metric-card"><span>Items</span><strong>@_items.Count</strong><p>registered agricultural inputs</p></div>
-    <div class="metric-card"><span>Warehouses</span><strong>@_warehouses.Count</strong><p>national and district stores</p></div>
-    <div class="metric-card"><span>Stock lots</span><strong>@_lots.Count</strong><p>batches with traceability</p></div>
-    <div class="metric-card warning"><span>Total quantity</span><strong>@_lots.Sum(x => x.Quantity).ToString("N0")</strong><p>all tracked units</p></div>
-</section>
-
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <section class="notice">@_message</section>
-}
-
-<section class="workbench">
-    <div class="panel large-panel">
-        <div class="panel-header"><h2>Live stock lots</h2><button type="button" @onclick="Load">Refresh</button></div>
-        <table>
-            <thead><tr><th>Lot</th><th>Warehouse</th><th>Item</th><th>Quantity</th><th>Expiry</th></tr></thead>
-            <tbody>
-                @foreach (var lot in _lots)
-                {
-                    <tr><td>@lot.LotCode</td><td>@lot.WarehouseCode</td><td>@ItemName(lot.ItemId)</td><td>@lot.Quantity.ToString("N0")</td><td>@(lot.ExpiresOn?.ToString("yyyy-MM-dd") ?? "None")</td></tr>
-                }
-            </tbody>
-        </table>
+<div class="metric-row">
+    <div class="hud-panel metric-widget">
+        <span class="metric-label">National Stores</span>
+        <div class="metric-value">@_warehouses.Count</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--primary); font-weight: 800;">STATUS: NOMINAL</div>
     </div>
-    <div class="panel">
-        <h2>Create item</h2>
-        <form class="form-stack" method="post" action="/portal-actions/inventory/create-item">
-            <label>SKU <input name="sku" @bind="_item.Sku" /></label>
-            <label>Name <input name="name" @bind="_item.Name" /></label>
-            <label>Category <input name="category" @bind="_item.Category" /></label>
-            <label>Unit <input name="unitOfMeasure" @bind="_item.UnitOfMeasure" /></label>
-            <button type="submit">Create item</button>
-        </form>
+    
+    <div class="hud-panel metric-widget" style="border-color: var(--secondary);">
+        <span class="metric-label">Input SKUs</span>
+        <div class="metric-value" style="color: var(--secondary);">@_items.Count</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--secondary); font-weight: 800;">CATALOG: UPDATED</div>
     </div>
-</section>
+
+    <div class="hud-panel metric-widget" style="border-color: var(--accent);">
+        <span class="metric-label">Total Volume</span>
+        <div class="metric-value" style="color: var(--accent);">@_lots.Sum(x => x.Quantity).ToString("N0")</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--accent); font-weight: 800;">UNITS: METRIC TONS</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem;">
+    <div class="hud-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 class="hud-title" style="margin: 0; font-size: 1.2rem;">Live Stock Lots</h2>
+            <button @onclick="Load">Sync Node</button>
+        </div>
+
+        <div class="tech-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>LOT CODE</th>
+                        <th>STORE</th>
+                        <th>ENTITY</th>
+                        <th style="text-align: right;">QUANTITY</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lot in _lots)
+                    {
+                        <tr>
+                            <td style="font-weight: 900; color: var(--primary);">@lot.LotCode</td>
+                            <td style="font-weight: 700;">@lot.WarehouseCode</td>
+                            <td style="color: var(--muted);">@ItemName(lot.ItemId)</td>
+                            <td style="text-align: right; font-family: 'Syncopate', sans-serif; font-size: 0.75rem; color: var(--primary);">@lot.Quantity.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="hud-panel" style="background: rgba(16, 185, 129, 0.02); border-color: rgba(16, 185, 129, 0.2);">
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--primary);">Add Input SKU</h2>
+        <div class="hud-input-group">
+            <label>SKU IDENTIFIER</label>
+            <input @bind="_item.Sku" />
+        </div>
+        <div class="hud-input-group">
+            <label>DISPLAY NAME</label>
+            <input @bind="_item.Name" />
+        </div>
+        <div class="hud-input-group">
+            <label>CATEGORY</label>
+            <input @bind="_item.Category" />
+        </div>
+        <button style="width: 100%; height: 3.5rem;" @onclick="CreateItem">Initialize SKU</button>
+        
+        @if (_message != null)
+        {
+            <div style="margin-top: 1.5rem; font-size: 0.7rem; font-weight: 900; color: var(--primary); text-transform: uppercase;">
+                [LOG]: @_message
+            </div>
+        }
+    </div>
+</div>
 
 @code {
     private readonly List<InventoryItemDto> _items = [];
@@ -55,11 +95,7 @@
     private string? _message;
     private ItemForm _item = ItemForm.Default();
 
-    protected override async Task OnInitializedAsync()
-    {
-        _message = QueryMessage();
-        await Load();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
@@ -72,27 +108,13 @@
 
     private async Task CreateItem()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("AgriPodApi");
-            var response = await client.PostAsJsonAsync("/api/v1/inventory-items", new CreateInventoryItemRequest(_item.Sku, _item.Name, _item.Category, _item.UnitOfMeasure));
-            if (!response.IsSuccessStatusCode)
-            {
-                _message = $"Create item failed: {response.StatusCode}";
-                return;
-            }
-
-            _message = $"Created item {_item.Sku}.";
-            _item = ItemForm.Default();
-            await Load();
-        }
-        catch (Exception ex)
-        {
-            _message = $"Create item failed: {ex.Message}";
-        }
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var response = await client.PostAsJsonAsync("/api/v1/inventory-items", new CreateInventoryItemRequest(_item.Sku, _item.Name, _item.Category, _item.UnitOfMeasure));
+        _message = response.IsSuccessStatusCode ? "SKU Initialized." : "Commit failed.";
+        await Load();
     }
 
-    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
+    private string ItemName(Guid id) => _items.FirstOrDefault(x => x.Id == id)?.Name ?? "UNKNOWN";
 
     private sealed class ItemForm
     {
@@ -100,13 +122,6 @@
         public string Name { get; set; } = "";
         public string Category { get; set; } = "";
         public string UnitOfMeasure { get; set; } = "";
-        public static ItemForm Default() => new() { Sku = $"INPUT-{Random.Shared.Next(100,999)}", Name = "Demo input", Category = "Seed", UnitOfMeasure = "kg" };
-    }
-
-    private string? QueryMessage()
-    {
-        var query = new Uri(Navigation.Uri).Query;
-        const string key = "?message=";
-        return query.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(query[key.Length..]) : null;
+        public static ItemForm Default() => new() { Sku = $"SKU-{Random.Shared.Next(1000,9999)}", Name = "High-Yield Seed", Category = "Crop", UnitOfMeasure = "Bag" };
     }
 }

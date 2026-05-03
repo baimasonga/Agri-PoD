@@ -3,43 +3,79 @@
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
 
-<PageTitle>Deliveries</PageTitle>
+<PageTitle>Obsidian Field | PoD Validation</PageTitle>
 
-<section class="page-section">
-    <h1>Deliveries and PoD</h1>
-    <p>Every delivery can carry OTP, barcode or QR scans, GPS coordinates, facial biometric reference, and offline sync metadata.</p>
-</section>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Proof of Delivery</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">Multi-Factor Authentication & Biometric Verification Ledger</p>
+</div>
 
-<section class="panel">
-    <div class="panel-header"><h2>Live delivery queue</h2><button type="button" @onclick="Load">Refresh</button></div>
-    <table>
-        <thead><tr><th>Delivery</th><th>Recipient</th><th>Phone</th><th>District</th><th>Lines</th><th>Status</th></tr></thead>
-        <tbody>
-            @foreach (var delivery in _deliveries)
-            {
-                <tr><td>@delivery.DeliveryNumber</td><td>@delivery.RecipientName</td><td>@delivery.RecipientPhone</td><td>@delivery.DestinationDistrict</td><td>@delivery.Lines.Count</td><td><span class="state @StatusClass(delivery.Status)">@delivery.Status</span></td></tr>
-            }
-        </tbody>
-    </table>
-</section>
-
-<section class="pod-grid">
-    <div class="panel">
-        <h2>Capture workflow</h2>
-        <ol class="workflow-list">
-            <li>Scan package QR or barcode</li>
-            <li>Verify recipient by Twilio Verify OTP</li>
-            <li>Capture GPS and face reference</li>
-            <li>Write locally first and sync later</li>
-        </ol>
+<div class="metric-row">
+    <div class="hud-panel metric-widget" style="border-color: var(--primary);">
+        <span class="metric-label">Biometric Success</span>
+        <div class="metric-value">98.2%</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--primary); font-weight: 800;">FACE RECOGNITION: NOMINAL</div>
     </div>
-    <div class="panel">
-        <h2>PoD validation gates</h2>
-        <div class="check-list">
-            <span>Farmer barcode</span><span>Allocation lookup</span><span>Package barcode</span><span>Twilio OTP</span><span>Face capture</span><span>GPS boundary</span><span>Vehicle proximity</span><span>Quantity confirmation</span>
-        </div>
+    
+    <div class="hud-panel metric-widget" style="border-color: var(--secondary);">
+        <span class="metric-label">OTP Validations</span>
+        <div class="metric-value" style="color: var(--secondary);">1.4k</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--secondary); font-weight: 800;">TWILIO UPLINK: STABLE</div>
     </div>
-</section>
+
+    <div class="hud-panel metric-widget" style="border-color: var(--accent);">
+        <span class="metric-label">GPS Geofence Breach</span>
+        <div class="metric-value" style="color: var(--accent);">04</div>
+        <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--accent); font-weight: 800;">ALERT: ACTION REQUIRED</div>
+    </div>
+</div>
+
+<div class="hud-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+        <h2 class="hud-title" style="margin: 0; font-size: 1.5rem;">Validation Stream</h2>
+        <button @onclick="Load">Sync Node</button>
+    </div>
+
+    <div class="tech-table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>DELIVERY ID</th>
+                    <th>RECIPIENT</th>
+                    <th>SECURITY GATES</th>
+                    <th>GPS COORDS</th>
+                    <th>BIOMETRIC</th>
+                    <th>STATUS</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var delivery in _deliveries)
+                {
+                    <tr>
+                        <td style="font-weight: 900; color: var(--primary);">@delivery.DeliveryNumber</td>
+                        <td>
+                            <div style="font-weight: 800;">@delivery.RecipientName</div>
+                            <div style="font-size: 0.7rem; color: var(--muted);">@delivery.RecipientPhone</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <span style="font-size: 0.6rem; font-weight: 900; border: 1px solid var(--primary); padding: 0.2rem 0.4rem; color: var(--primary);">OTP</span>
+                                <span style="font-size: 0.6rem; font-weight: 900; border: 1px solid var(--secondary); padding: 0.2rem 0.4rem; color: var(--secondary);">FACE</span>
+                                <span style="font-size: 0.6rem; font-weight: 900; border: 1px solid var(--accent); padding: 0.2rem 0.4rem; color: var(--accent);">GPS</span>
+                            </div>
+                        </td>
+                        <td style="font-family: monospace; font-size: 0.75rem; color: var(--muted);">8.48N, 11.75W</td>
+                        <td style="font-weight: 800; color: var(--primary);">94% MATCH</td>
+                        <td>
+                            <span class="dot" style="color: @(delivery.Status == "Delivered" ? "var(--primary)" : "var(--accent)"); background: currentColor;"></span>
+                            <span style="font-size: 0.7rem; font-weight: 900; color: @(delivery.Status == "Delivered" ? "var(--primary)" : "var(--accent)");">@delivery.Status.ToUpper()</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
 @code {
     private readonly List<DeliveryDto> _deliveries = [];
@@ -52,6 +88,4 @@
         _deliveries.Clear();
         _deliveries.AddRange(await client.GetFromJsonAsync<List<DeliveryDto>>("/api/v1/deliveries") ?? []);
     }
-
-    private static string StatusClass(string status) => status == "Delivered" ? "ok" : status == "Exception" ? "danger" : "warn";
 }

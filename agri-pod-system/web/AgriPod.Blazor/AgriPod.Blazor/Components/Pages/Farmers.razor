@@ -4,34 +4,57 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>Farmer Management</PageTitle>
+<PageTitle>Obsidian Field | Registry Console</PageTitle>
 
-<div class="dashboard-header">
-    <h1>Farmer Registry</h1>
-    <p class="subtitle">National database of registered beneficiaries and eligibility review queue.</p>
+<div style="margin-bottom: 4rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Entity Registry</h1>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">National Beneficiary Database Management</p>
 </div>
 
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <div class="terra-card" style="background: var(--primary); color: white; padding: 1rem; margin-bottom: 2rem;">
-        <strong>Notice:</strong> @_message
-    </div>
-}
-
-<div style="display: grid; grid-template-columns: 1fr 350px; gap: 3rem; align-items: start;">
-    <div class="data-surface">
-        <div style="padding: 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin: 0;">Approval Queue</h2>
-            <button class="secondary-button" @onclick="LoadFarmers">Refresh List</button>
+<div class="hud-panel" style="margin-bottom: 3rem; background: rgba(16, 185, 129, 0.02); border-color: rgba(16, 185, 129, 0.2);">
+    <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--primary);">Secure Entry Uplink</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; align-items: flex-end;">
+        <div class="hud-input-group" style="margin: 0;">
+            <label>Subject Name</label>
+            <input @bind="_newFarmer.FullName" placeholder="A. KAMARA" />
         </div>
+        <div class="hud-input-group" style="margin: 0;">
+            <label>Citizen ID</label>
+            <input @bind="_newFarmer.NationalId" placeholder="SL-XXX" />
+        </div>
+        <div class="hud-input-group" style="margin: 0;">
+            <label>Comms Link</label>
+            <input @bind="_newFarmer.Phone" placeholder="+232..." />
+        </div>
+        <div class="hud-input-group" style="margin: 0;">
+            <label>Zone Code</label>
+            <input @bind="_newFarmer.DistrictCode" />
+        </div>
+        <button style="height: 3rem;" @onclick="RegisterFarmer">Commit Entry</button>
+    </div>
+    @if (_message != null)
+    {
+        <div style="margin-top: 1.5rem; font-size: 0.7rem; font-weight: 900; color: var(--primary); letter-spacing: 0.1em;">
+            [SYSTEM LOG]: @_message.ToUpper()
+        </div>
+    }
+</div>
+
+<div class="hud-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 class="hud-title" style="font-size: 1.2rem; margin: 0;">Validation Queue</h2>
+        <button class="btn-secondary" style="border-radius: 0; border-color: var(--muted); color: var(--muted);" @onclick="LoadFarmers">Sync Node</button>
+    </div>
+
+    <div class="tech-table-container">
         <table>
             <thead>
                 <tr>
-                    <th>Beneficiary</th>
-                    <th>Region</th>
-                    <th>Value Chain</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Management</th>
+                    <th>SUBJECT</th>
+                    <th>ZONE</th>
+                    <th>CHAIN</th>
+                    <th>INTEGRITY</th>
+                    <th style="text-align: right;">OVERRIDE</th>
                 </tr>
             </thead>
             <tbody>
@@ -39,18 +62,25 @@
                 {
                     <tr>
                         <td>
-                            <div style="font-weight: 700; color: var(--ink);">@farmer.FullName</div>
-                            <div style="font-size: 0.75rem; color: var(--muted);">@farmer.BarcodeToken</div>
+                            <div style="font-weight: 900; color: var(--ink);">@farmer.FullName.ToUpper()</div>
+                            <div style="font-size: 0.65rem; color: var(--muted); font-weight: 800;">UUID: @farmer.Id.ToString().Substring(0, 8)</div>
                         </td>
-                        <td>@farmer.DistrictCode</td>
-                        <td><span style="font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.75rem; background: #f1f5f9; border-radius: 4px;">@farmer.ValueChain</span></td>
-                        <td><span class="badge @StatusClass(farmer.Status)">@farmer.Status</span></td>
+                        <td style="font-weight: 700; color: var(--muted);">@farmer.DistrictCode</td>
+                        <td>
+                            <span style="font-size: 0.65rem; font-weight: 900; padding: 0.25rem 0.5rem; border: 1px solid var(--border); color: var(--secondary);">@farmer.ValueChain.ToUpper()</span>
+                        </td>
+                        <td>
+                            <span class="dot" style="color: @(StatusColor(farmer.Status)); background: currentColor;"></span>
+                            <span style="font-size: 0.7rem; font-weight: 900; color: @(StatusColor(farmer.Status));">
+                                @farmer.Status.ToUpper()
+                            </span>
+                        </td>
                         <td style="text-align: right;">
                             @if (farmer.Status == "PendingReview")
                             {
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                    <button type="button" @onclick="() => ReviewFarmer(farmer.Id, true)" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">Approve</button>
-                                    <button class="secondary-button" type="button" @onclick="() => ReviewFarmer(farmer.Id, false)" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">Reject</button>
+                                    <button style="padding: 0.4rem 0.8rem; font-size: 0.65rem;" @onclick="() => ReviewFarmer(farmer.Id, true)">Grant</button>
+                                    <button class="btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.65rem;" @onclick="() => ReviewFarmer(farmer.Id, false)">Deny</button>
                                 </div>
                             }
                         </td>
@@ -59,35 +89,12 @@
             </tbody>
         </table>
     </div>
-
-    <div class="terra-card">
-        <h2 style="margin-bottom: 1.5rem;">Quick Registration</h2>
-        <div class="form-stack">
-            <div class="form-group">
-                <label>Full Name</label>
-                <input @bind="_newFarmer.FullName" placeholder="e.g. John Kamara" />
-            </div>
-            <div class="form-group">
-                <label>National ID</label>
-                <input @bind="_newFarmer.NationalId" placeholder="SL-XXX-XXX" />
-            </div>
-            <div class="form-group">
-                <label>Phone Number</label>
-                <input @bind="_newFarmer.Phone" placeholder="+232..." />
-            </div>
-            <div class="form-group">
-                <label>District</label>
-                <input @bind="_newFarmer.DistrictCode" placeholder="BOMBALI" />
-            </div>
-            <button type="button" @onclick="RegisterFarmer" style="width: 100%; margin-top: 1rem;">Create Beneficiary</button>
-        </div>
-    </div>
 </div>
 
 @code {
     private readonly List<FarmerDto> _farmers = [];
     private string? _message;
-    private FarmerForm _newFarmer = FarmerForm.Default();
+    private FarmerForm _newFarmer = new() { DistrictCode = "BOMBALI" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,9 +108,7 @@
             var farmers = await client.GetFromJsonAsync<List<FarmerDto>>("/api/v1/farmers") ?? [];
             _farmers.Clear();
             _farmers.AddRange(farmers);
-        } catch (Exception ex) {
-            _message = $"Load failed: {ex.Message}";
-        }
+        } catch { }
     }
 
     private async Task RegisterFarmer()
@@ -115,23 +120,22 @@
 
         var client = HttpClientFactory.CreateClient("AgriPodApi");
         var response = await client.PostAsJsonAsync("/api/v1/farmers", request);
-        _message = response.IsSuccessStatusCode ? "Beneficiary created." : "Registration failed.";
+        _message = response.IsSuccessStatusCode ? "Entry committed to core." : "Entry failed integrity check.";
         await LoadFarmers();
     }
 
     private async Task ReviewFarmer(Guid farmerId, bool approved)
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
-        await client.PostAsJsonAsync($"/api/v1/farmers/{farmerId}/review", new ReviewFarmerRequest(approved, "Reviewed in portal"));
+        await client.PostAsJsonAsync($"/api/v1/farmers/{farmerId}/review", new ReviewFarmerRequest(approved, "HUD Manual Override"));
         await LoadFarmers();
     }
 
-    private static string StatusClass(string status) => status switch
+    private static string StatusColor(string status) => status switch
     {
-        "Approved" => "badge-success",
-        "Rejected" => "badge-danger",
-        "PendingReview" => "badge-warning",
-        _ => "badge-warning"
+        "Approved" => "var(--primary)",
+        "Rejected" => "var(--accent)",
+        _ => "var(--muted)"
     };
 
     private sealed class FarmerForm
@@ -140,6 +144,5 @@
         public string NationalId { get; set; } = "";
         public string Phone { get; set; } = "";
         public string DistrictCode { get; set; } = "";
-        public static FarmerForm Default() => new() { FullName = "", NationalId = "", Phone = "", DistrictCode = "BOMBALI" };
     }
 }
