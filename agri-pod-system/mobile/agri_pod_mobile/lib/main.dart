@@ -204,10 +204,10 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
       actionLabel: 'Save farmer offline',
       onPressed: _save,
       children: [
-        TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full name')),
-        TextField(controller: _nationalId, decoration: const InputDecoration(labelText: 'National ID')),
-        TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone')),
-        TextField(controller: _community, decoration: const InputDecoration(labelText: 'Community')),
+        TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person))),
+        TextField(controller: _nationalId, decoration: const InputDecoration(labelText: 'National ID', prefixIcon: Icon(Icons.badge))),
+        TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone))),
+        TextField(controller: _community, decoration: const InputDecoration(labelText: 'Community', prefixIcon: Icon(Icons.location_city))),
       ],
     );
   }
@@ -261,7 +261,7 @@ class _SessionPageState extends State<SessionPage> {
       actionLabel: 'Start session offline',
       onPressed: _start,
       children: [
-        TextField(controller: _manifest, decoration: const InputDecoration(labelText: 'Manifest barcode')),
+        TextField(controller: _manifest, decoration: const InputDecoration(labelText: 'Manifest barcode', prefixIcon: Icon(Icons.qr_code_scanner))),
       ],
     );
   }
@@ -339,11 +339,11 @@ class _DeliveryCapturePageState extends State<DeliveryCapturePage> {
       actionLabel: 'Save PoD offline',
       onPressed: _captureProof,
       children: [
-        TextField(controller: _farmerBarcode, decoration: const InputDecoration(labelText: 'Farmer barcode')),
-        TextField(controller: _packageBarcode, decoration: const InputDecoration(labelText: 'Package barcode')),
+        TextField(controller: _farmerBarcode, decoration: const InputDecoration(labelText: 'Farmer barcode', prefixIcon: Icon(Icons.qr_code))),
+        TextField(controller: _packageBarcode, decoration: const InputDecoration(labelText: 'Package barcode', prefixIcon: Icon(Icons.inventory_2))),
         Row(
           children: [
-            Expanded(child: TextField(controller: _otp, decoration: const InputDecoration(labelText: 'OTP code'))),
+            Expanded(child: TextField(controller: _otp, decoration: const InputDecoration(labelText: 'OTP code', prefixIcon: Icon(Icons.password)))),
             const SizedBox(width: 8),
             FilledButton.tonal(
               onPressed: _requestTwilioOtp,
@@ -351,8 +351,8 @@ class _DeliveryCapturePageState extends State<DeliveryCapturePage> {
             ),
           ],
         ),
-        TextField(controller: _quantity, decoration: const InputDecoration(labelText: 'Quantity delivered')),
-        TextField(controller: _signature, decoration: const InputDecoration(labelText: 'Signature / Thumbprint (Optional)')),
+        TextField(controller: _quantity, decoration: const InputDecoration(labelText: 'Quantity delivered', prefixIcon: Icon(Icons.scale))),
+        TextField(controller: _signature, decoration: const InputDecoration(labelText: 'Signature / Thumbprint (Optional)', prefixIcon: Icon(Icons.draw))),
       ],
     );
   }

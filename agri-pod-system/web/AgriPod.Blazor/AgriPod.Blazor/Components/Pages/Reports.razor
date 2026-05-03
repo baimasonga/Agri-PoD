@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using AgriPod.Shared
 @inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Reports</PageTitle>
 
@@ -15,6 +16,21 @@
     <div class="metric-card"><span>Approved farmers</span><strong>@_summary.FarmersApproved</strong><p>eligible for allocations</p></div>
     <div class="metric-card"><span>Campaigns active</span><strong>@_summary.CampaignsActive</strong><p>approved or active</p></div>
     <div class="metric-card warning"><span>Open exceptions</span><strong>@_summary.OpenExceptions</strong><p>awaiting supervisor action</p></div>
+</section>
+
+<section class="charts-section" style="display: flex; gap: 2rem; margin: 2rem 0; height: 300px;">
+    <div class="panel" style="flex: 1; display: flex; flex-direction: column;">
+        <h2>Distribution progress</h2>
+        <div style="flex: 1; position: relative;">
+            <canvas id="progressChart"></canvas>
+        </div>
+    </div>
+    <div class="panel" style="flex: 1; display: flex; flex-direction: column;">
+        <h2>System health</h2>
+        <div style="flex: 1; position: relative;">
+            <canvas id="healthChart"></canvas>
+        </div>
+    </div>
 </section>
 
 <section class="workbench">
@@ -63,10 +79,33 @@
 
     protected override async Task OnInitializedAsync() => await Load();
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await RenderCharts();
+        }
+    }
+
     private async Task Load()
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
         _summary = await client.GetFromJsonAsync<ReportSummaryDto>("/api/v1/reports/summary") ?? new(0, 0, 0, 0, 0, 0);
+        if (JSRuntime is not null)
+        {
+            await RenderCharts();
+        }
+    }
+
+    private async Task RenderCharts()
+    {
+        var progressData = new[] { _summary.FarmersApproved, _summary.DeliveriesCompleted, _summary.CampaignsActive };
+        var progressLabels = new[] { "Approved Farmers", "Completed Deliveries", "Active Campaigns" };
+        await JSRuntime.InvokeVoidAsync("agriPodCharts.renderDoughnut", "progressChart", progressData, progressLabels);
+
+        var healthData = new[] { _summary.OpenExceptions, _summary.OfflineMutationsPending };
+        var healthLabels = new[] { "Open Exceptions", "Pending Offline Syncs" };
+        await JSRuntime.InvokeVoidAsync("agriPodCharts.renderBar", "healthChart", healthData, healthLabels);
     }
 
     private sealed record ReportRow(string Name, string Description, string Status, string StateClass);
