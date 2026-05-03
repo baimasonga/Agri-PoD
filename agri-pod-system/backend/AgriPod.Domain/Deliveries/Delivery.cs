@@ -41,10 +41,28 @@ public sealed class Delivery : Entity
         Touch();
     }
 
-    public void MarkDelivered(decimal latitude, decimal longitude, string capturedByUserId, string? biometricReference)
+    public void MarkDelivered(
+        decimal latitude,
+        decimal longitude,
+        string capturedByUserId,
+        string? biometricReference,
+        DateTimeOffset deliveredAt,
+        string? signatureReference,
+        string? photoEvidenceReference,
+        string offlineTransactionId)
     {
         Status = DeliveryStatus.Delivered;
-        _proofEvents.Add(new ProofOfDeliveryEvent(Id, ProofEventType.Delivered, latitude, longitude, capturedByUserId, biometricReference));
+        _proofEvents.Add(new ProofOfDeliveryEvent(
+            Id,
+            ProofEventType.Delivered,
+            latitude,
+            longitude,
+            capturedByUserId,
+            biometricReference,
+            deliveredAt,
+            signatureReference,
+            photoEvidenceReference,
+            offlineTransactionId));
         Touch();
     }
 }

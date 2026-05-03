@@ -147,7 +147,11 @@ public sealed record ProofOfDeliveryRequest(
     decimal Longitude,
     string VehicleRegistration,
     decimal Quantity,
-    string CapturedByUserId);
+    string CapturedByUserId,
+    DateTimeOffset Timestamp,
+    string? SignatureReference,
+    string? PhotoEvidenceReference,
+    string OfflineTransactionId);
 
 public sealed record ProofOfDeliveryResult(bool Succeeded, string Status, IReadOnlyCollection<string> ValidationMessages);
 

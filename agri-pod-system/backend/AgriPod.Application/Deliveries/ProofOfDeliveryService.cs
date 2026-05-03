@@ -45,7 +45,12 @@ public sealed class ProofOfDeliveryService(IAgriPodDbContext db)
 
         if (string.IsNullOrWhiteSpace(request.FaceCaptureReference))
         {
-            messages.Add("Facial biometric capture reference is required.");
+            messages.Add("Face capture reference is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.PhotoEvidenceReference))
+        {
+            messages.Add("Photo evidence is required.");
         }
 
         if (vehiclePing is null)
@@ -62,7 +67,15 @@ public sealed class ProofOfDeliveryService(IAgriPodDbContext db)
         }
 
         allocation!.MarkDelivered(request.Quantity);
-        delivery!.MarkDelivered(request.Latitude, request.Longitude, request.CapturedByUserId, request.FaceCaptureReference);
+        delivery!.MarkDelivered(
+            request.Latitude,
+            request.Longitude,
+            request.CapturedByUserId,
+            request.FaceCaptureReference,
+            request.Timestamp,
+            request.SignatureReference,
+            request.PhotoEvidenceReference,
+            request.OfflineTransactionId);
         db.AuditLogs.Add(new(request.CapturedByUserId, "ProofOfDeliveryConfirmed", "Delivery", delivery.Id, "{}"));
         await db.SaveChangesAsync(cancellationToken);
         return new ProofOfDeliveryResult(true, "Delivered", []);

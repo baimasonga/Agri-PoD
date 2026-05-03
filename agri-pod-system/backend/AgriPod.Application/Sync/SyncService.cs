@@ -128,6 +128,11 @@ public sealed class SyncService(IAgriPodDbContext db)
             messages.Add("Face capture reference is required.");
         }
 
+        if (string.IsNullOrWhiteSpace(payload.PhotoEvidenceReference))
+        {
+            messages.Add("Photo evidence is required.");
+        }
+
         var vehiclePing = await db.VehicleLocations
             .Where(x => x.VehicleRegistration == payload.VehicleRegistration)
             .ToListAsync(cancellationToken);
@@ -145,7 +150,15 @@ public sealed class SyncService(IAgriPodDbContext db)
         }
 
         allocation!.MarkDelivered(payload.Quantity);
-        delivery!.MarkDelivered(payload.Latitude, payload.Longitude, payload.CapturedByUserId, payload.FaceCaptureReference);
+        delivery!.MarkDelivered(
+            payload.Latitude,
+            payload.Longitude,
+            payload.CapturedByUserId,
+            payload.FaceCaptureReference,
+            payload.Timestamp,
+            payload.SignatureReference,
+            payload.PhotoEvidenceReference,
+            payload.OfflineTransactionId);
         db.AuditLogs.Add(new(deviceId, "OfflineProofOfDeliveryConfirmed", "Delivery", delivery.Id, jsonPayload));
     }
 
@@ -160,5 +173,9 @@ public sealed class SyncService(IAgriPodDbContext db)
         decimal Longitude,
         string VehicleRegistration,
         decimal Quantity,
-        string CapturedByUserId);
+        string CapturedByUserId,
+        DateTimeOffset Timestamp,
+        string? SignatureReference,
+        string? PhotoEvidenceReference,
+        string OfflineTransactionId);
 }
