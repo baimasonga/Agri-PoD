@@ -48,4 +48,24 @@ public sealed class InventoryService(IAgriPodDbContext db)
         await db.SaveChangesAsync(cancellationToken);
         return new WarehouseDto(warehouse.Id, warehouse.Code, warehouse.Name, warehouse.District);
     }
+
+    public async Task TransferStockAsync(TransferStockRequest request, CancellationToken cancellationToken)
+    {
+        var sourceLot = await db.StockLots.FirstOrDefaultAsync(x => x.ItemId == request.ItemId && x.WarehouseId == request.FromWarehouseId && x.LotCode == request.LotCode, cancellationToken);
+        if (sourceLot == null || sourceLot.Quantity < request.Quantity) return;
+
+        var destLot = await db.StockLots.FirstOrDefaultAsync(x => x.ItemId == request.ItemId && x.WarehouseId == request.ToWarehouseId && x.LotCode == request.LotCode, cancellationToken);
+        if (destLot == null)
+        {
+            destLot = new StockLot(request.ItemId, request.ToWarehouseId, request.LotCode, request.Quantity, sourceLot.ExpiresOn);
+            db.StockLots.Add(destLot);
+        }
+        else
+        {
+            destLot.Adjust(request.Quantity);
+        }
+
+        sourceLot.Adjust(-request.Quantity);
+        await db.SaveChangesAsync(cancellationToken);
+    }
 }

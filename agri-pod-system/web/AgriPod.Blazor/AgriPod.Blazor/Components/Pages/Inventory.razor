@@ -8,11 +8,11 @@
 
 <div style="margin-bottom: 4rem;">
     <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Inventory Core</h1>
-    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">Stock Management & Distribution Logistics</p>
+    <p style="color: var(--muted); font-weight: 700; letter-spacing: 0.1em;">National Stock Management & Inter-Warehouse Logistics</p>
 </div>
 
 <div class="metric-row">
-    <div class="hud-panel metric-widget">
+    <div class="hud-panel metric-widget" style="border-color: var(--primary);">
         <span class="metric-label">National Stores</span>
         <div class="metric-value">@_warehouses.Count</div>
         <div style="margin-top: 1rem; font-size: 0.65rem; color: var(--primary); font-weight: 800;">STATUS: NOMINAL</div>
@@ -31,7 +31,7 @@
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem;">
+<div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem; margin-bottom: 3rem;">
     <div class="hud-panel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h2 class="hud-title" style="margin: 0; font-size: 1.2rem;">Live Stock Lots</h2>
@@ -64,36 +64,70 @@
     </div>
 
     <div class="hud-panel" style="background: rgba(16, 185, 129, 0.02); border-color: rgba(16, 185, 129, 0.2);">
-        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--primary);">Add Input SKU</h2>
+        <h2 class="hud-title" style="font-size: 1rem; margin-bottom: 2rem; color: var(--primary);">Initialize SKU</h2>
         <div class="hud-input-group">
             <label>SKU IDENTIFIER</label>
-            <input @bind="_item.Sku" />
+            <input @bind="_itemForm.Sku" />
         </div>
         <div class="hud-input-group">
             <label>DISPLAY NAME</label>
-            <input @bind="_item.Name" />
+            <input @bind="_itemForm.Name" />
         </div>
         <div class="hud-input-group">
             <label>CATEGORY</label>
-            <input @bind="_item.Category" />
+            <input @bind="_itemForm.Category" />
         </div>
-        <button style="width: 100%; height: 3.5rem;" @onclick="CreateItem">Initialize SKU</button>
-        
-        @if (_message != null)
-        {
-            <div style="margin-top: 1.5rem; font-size: 0.7rem; font-weight: 900; color: var(--primary); text-transform: uppercase;">
-                [LOG]: @_message
-            </div>
-        }
+        <button style="width: 100%; height: 3.5rem;" @onclick="CreateItem">Commit SKU</button>
     </div>
 </div>
+
+<div class="hud-panel" style="background: rgba(59, 130, 246, 0.02); border-color: rgba(59, 130, 246, 0.2);">
+    <h2 class="hud-title" style="font-size: 1.2rem; margin-bottom: 3rem; color: var(--secondary);">Inter-Warehouse Transfer</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; align-items: flex-end;">
+        <div class="hud-input-group">
+            <label>COMMODITY</label>
+            <select @bind="_transferForm.ItemId" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 1rem; width: 100%; color: white;">
+                @foreach (var item in _items) { <option value="@item.Id">@item.Name</option> }
+            </select>
+        </div>
+        <div class="hud-input-group">
+            <label>SOURCE STORE</label>
+            <select @bind="_transferForm.FromWarehouseId" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 1rem; width: 100%; color: white;">
+                @foreach (var wh in _warehouses) { <option value="@wh.Id">@wh.Name</option> }
+            </select>
+        </div>
+        <div class="hud-input-group">
+            <label>TARGET STORE</label>
+            <select @bind="_transferForm.ToWarehouseId" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 1rem; width: 100%; color: white;">
+                @foreach (var wh in _warehouses) { <option value="@wh.Id">@wh.Name</option> }
+            </select>
+        </div>
+        <div class="hud-input-group">
+            <label>LOT CODE</label>
+            <input @bind="_transferForm.LotCode" />
+        </div>
+        <div class="hud-input-group">
+            <label>VOLUME</label>
+            <input @bind="_transferForm.Quantity" />
+        </div>
+        <button style="height: 3.5rem; border-color: var(--secondary); color: var(--secondary);" @onclick="TransferStock">Authorize Transfer</button>
+    </div>
+</div>
+
+@if (_message != null)
+{
+    <div style="position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 2rem; background: var(--surface); border: 1px solid var(--primary); color: var(--primary); font-size: 0.75rem; font-weight: 900; z-index: 2000;">
+        [SYSTEM MESSAGE]: @_message.ToUpper()
+    </div>
+}
 
 @code {
     private readonly List<InventoryItemDto> _items = [];
     private readonly List<WarehouseDto> _warehouses = [];
     private readonly List<StockLotDto> _lots = [];
     private string? _message;
-    private ItemForm _item = ItemForm.Default();
+    private ItemForm _itemForm = ItemForm.Default();
+    private TransferForm _transferForm = new();
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -104,13 +138,25 @@
         _items.AddRange(await client.GetFromJsonAsync<List<InventoryItemDto>>("/api/v1/inventory-items") ?? []);
         _warehouses.AddRange(await client.GetFromJsonAsync<List<WarehouseDto>>("/api/v1/warehouses") ?? []);
         _lots.AddRange(await client.GetFromJsonAsync<List<StockLotDto>>("/api/v1/stock-lots") ?? []);
+        
+        if (_transferForm.ItemId == Guid.Empty && _items.Any()) _transferForm.ItemId = _items.First().Id;
+        if (_transferForm.FromWarehouseId == Guid.Empty && _warehouses.Any()) _transferForm.FromWarehouseId = _warehouses.First().Id;
+        if (_transferForm.ToWarehouseId == Guid.Empty && _warehouses.Count > 1) _transferForm.ToWarehouseId = _warehouses[1].Id;
     }
 
     private async Task CreateItem()
     {
         var client = HttpClientFactory.CreateClient("AgriPodApi");
-        var response = await client.PostAsJsonAsync("/api/v1/inventory-items", new CreateInventoryItemRequest(_item.Sku, _item.Name, _item.Category, _item.UnitOfMeasure));
-        _message = response.IsSuccessStatusCode ? "SKU Initialized." : "Commit failed.";
+        await client.PostAsJsonAsync("/api/v1/inventory-items", new CreateInventoryItemRequest(_itemForm.Sku, _itemForm.Name, _itemForm.Category, _itemForm.UnitOfMeasure));
+        _message = "SKU INITIALIZED.";
+        await Load();
+    }
+
+    private async Task TransferStock()
+    {
+        var client = HttpClientFactory.CreateClient("AgriPodApi");
+        var response = await client.PostAsJsonAsync("/api/v1/inventory/transfer", new TransferStockRequest(_transferForm.ItemId, _transferForm.FromWarehouseId, _transferForm.ToWarehouseId, _transferForm.Quantity, _transferForm.LotCode));
+        _message = response.IsSuccessStatusCode ? "TRANSFER AUTHORIZED." : "TRANSFER FAILED.";
         await Load();
     }
 
@@ -123,5 +169,14 @@
         public string Category { get; set; } = "";
         public string UnitOfMeasure { get; set; } = "";
         public static ItemForm Default() => new() { Sku = $"SKU-{Random.Shared.Next(1000,9999)}", Name = "High-Yield Seed", Category = "Crop", UnitOfMeasure = "Bag" };
+    }
+
+    private sealed class TransferForm
+    {
+        public Guid ItemId { get; set; }
+        public Guid FromWarehouseId { get; set; }
+        public Guid ToWarehouseId { get; set; }
+        public string LotCode { get; set; } = "LOT-001";
+        public decimal Quantity { get; set; } = 100;
     }
 }

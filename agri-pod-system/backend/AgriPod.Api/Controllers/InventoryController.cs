@@ -40,4 +40,11 @@ public sealed class InventoryController(InventoryService inventoryService) : Con
     [ProducesResponseType<IReadOnlyCollection<StockLotDto>>(StatusCodes.Status200OK)]
     public async Task<IReadOnlyCollection<StockLotDto>> StockLots(CancellationToken cancellationToken) =>
         await inventoryService.ListStockLotsAsync(cancellationToken);
+
+    [HttpPost("/api/v1/inventory/transfer")]
+    public async Task<IActionResult> Transfer(TransferStockRequest request, CancellationToken cancellationToken)
+    {
+        await inventoryService.TransferStockAsync(request, cancellationToken);
+        return Accepted();
+    }
 }
