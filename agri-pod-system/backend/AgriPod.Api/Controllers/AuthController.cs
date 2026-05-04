@@ -47,7 +47,8 @@ public sealed class AuthController(IConfiguration configuration) : ControllerBas
         if (email.Contains("procurement", StringComparison.OrdinalIgnoreCase)) return "ProcurementOfficer";
         if (email.Contains("manager", StringComparison.OrdinalIgnoreCase)) return "ProjectManager";
         if (email.Contains("driver", StringComparison.OrdinalIgnoreCase)) return "Driver";
-        if (email.Equals("me@agripod.local", StringComparison.OrdinalIgnoreCase)) return "MonitoringEvaluationOfficer";
-        return "SystemAdministrator";
+        if (email.Contains("me", StringComparison.OrdinalIgnoreCase)) return "MonitoringOfficer";
+        if (email.Contains("viewer", StringComparison.OrdinalIgnoreCase)) return "Viewer";
+        return "SystemAdmin";
     }
 }

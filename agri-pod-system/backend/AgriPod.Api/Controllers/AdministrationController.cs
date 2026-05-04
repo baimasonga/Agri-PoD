@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "SystemAdministrator,Auditor,DistrictCoordinator")]
+[Authorize(Roles = "SystemAdmin")]
 [Route("api/v1/administration")]
 public sealed class AdministrationController(AdministrationService administrationService) : ControllerBase
 {

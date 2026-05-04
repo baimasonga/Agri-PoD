@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "SystemAdministrator,ProjectManager,DistrictCoordinator,Auditor,MonitoringEvaluationOfficer")]
+[Authorize(Roles = "SystemAdmin,ProjectManager,DistrictCoordinator")]
 [Route("api/v1/campaigns")]
 public sealed class CampaignsController(CampaignService campaignService) : ControllerBase
 {

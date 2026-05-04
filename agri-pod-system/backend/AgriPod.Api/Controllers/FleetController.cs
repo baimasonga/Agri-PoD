@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "SystemAdministrator,Driver,ProjectManager,DistrictCoordinator,Auditor,MonitoringEvaluationOfficer")]
+[Authorize(Roles = "SystemAdmin,ProjectManager,WarehouseManager,Driver,MonitoringOfficer,Auditor")]
 [Route("api/v1/fleet")]
 public sealed class FleetController(FleetTrackingService fleetTrackingService) : ControllerBase
 {

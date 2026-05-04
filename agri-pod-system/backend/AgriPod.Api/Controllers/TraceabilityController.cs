@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "SystemAdministrator,ProjectManager,WarehouseManager,DistrictCoordinator,Auditor,MonitoringEvaluationOfficer")]
+[Authorize(Roles = "SystemAdmin,ProjectManager,DistrictCoordinator,MonitoringOfficer,Auditor")]
 [Route("api/v1/traceability")]
 public sealed class TraceabilityController(TraceabilityService traceabilityService) : ControllerBase
 {

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AgriPod.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "SystemAdministrator,ProcurementOfficer,WarehouseManager,Auditor")]
+[Authorize(Roles = "SystemAdmin,ProcurementOfficer")]
 [Route("api/v1/procurement")]
 public sealed class ProcurementController(ProcurementService procurementService) : ControllerBase
 {

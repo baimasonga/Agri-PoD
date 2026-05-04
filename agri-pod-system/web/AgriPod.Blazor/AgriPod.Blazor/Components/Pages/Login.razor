@@ -5,32 +5,84 @@
 @inject PortalAuthState AuthState
 @inject NavigationManager Navigation
 
-<PageTitle>Login</PageTitle>
+<PageTitle>Obsidian Field | Authorization</PageTitle>
 
-<section class="login-shell">
-    <div class="login-panel">
-        <h1>Sign in</h1>
-        <p>Use a seeded demo account to access role-specific workflows.</p>
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at center, #111 0%, #000 100%);
+    }
+    .auth-card {
+        width: 100%;
+        max-width: 500px;
+        padding: 3rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    }
+    .role-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-top: 2rem;
+    }
+    .role-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        padding: 0.75rem;
+        font-size: 0.65rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .role-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(16, 185, 129, 0.05);
+    }
+</style>
+
+<div class="login-container">
+    <div class="auth-card">
+        <div style="margin-bottom: 2rem; text-align: center;">
+            <div style="font-size: 2rem; font-weight: 900; color: var(--primary); letter-spacing: -0.05em; margin-bottom: 0.5rem;">AGRI-POD</div>
+            <div style="font-size: 0.7rem; font-weight: 800; color: var(--muted); letter-spacing: 0.3em; text-transform: uppercase;">Obsidian Field Ops</div>
+        </div>
+
+        <div class="hud-input-group">
+            <label>IDENTIFIER</label>
+            <input @bind="_email" placeholder="email@agripod.local" />
+        </div>
+        <div class="hud-input-group">
+            <label>ACCESS KEY</label>
+            <input type="password" @bind="_password" />
+        </div>
+
+        <button style="width: 100%; height: 3.5rem; margin-top: 1rem;" @onclick="SignIn">Authorize Access</button>
+
+        <div style="margin-top: 3rem;">
+            <div style="font-size: 0.6rem; font-weight: 900; color: var(--muted); margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">SIMULATE CLEARANCE LEVEL</div>
+            <div class="role-grid">
+                @foreach (var account in DemoAccounts)
+                {
+                    <button class="role-btn" @onclick="() => SignInAs(account.Email)">@account.Label</button>
+                }
+            </div>
+        </div>
 
         @if (!string.IsNullOrWhiteSpace(_message))
         {
-            <section class="notice">@_message</section>
+            <div style="margin-top: 2rem; padding: 1rem; border: 1px solid var(--accent); color: var(--accent); font-size: 0.7rem; font-weight: 900; text-transform: uppercase;">
+                [AUTH ERROR]: @_message
+            </div>
         }
-
-        <div class="form-stack">
-            <label>Email <input @bind="_email" /></label>
-            <label>Password <input type="password" @bind="_password" /></label>
-            <button type="button" @onclick="SignIn">Sign in</button>
-        </div>
-
-        <div class="demo-logins">
-            @foreach (var account in DemoAccounts)
-            {
-                <button class="secondary-button" type="button" @onclick="() => SignInAs(account.Email)">@account.Label</button>
-            }
-        </div>
     </div>
-</section>
+</div>
 
 @code {
     private string _email = "admin@agripod.local";
@@ -39,15 +91,16 @@
 
     private static readonly DemoAccount[] DemoAccounts =
     [
-        new("Admin", "admin@agripod.local"),
-        new("Project manager", "manager@agripod.local"),
+        new("System Admin", "admin@agripod.local"),
+        new("Project Manager", "manager@agripod.local"),
         new("Procurement", "procurement@agripod.local"),
         new("Warehouse", "warehouse@agripod.local"),
         new("Coordinator", "coordinator@agripod.local"),
-        new("Field", "field@agripod.local"),
+        new("Field Officer", "field@agripod.local"),
         new("Driver", "driver@agripod.local"),
-        new("M&E", "me@agripod.local"),
-        new("Auditor", "audit@agripod.local")
+        new("Monitoring", "me@agripod.local"),
+        new("Auditor", "audit@agripod.local"),
+        new("Viewer", "viewer@agripod.local")
     ];
 
     private async Task SignInAs(string email)
@@ -63,16 +116,12 @@
         var response = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(_email, _password));
         if (!response.IsSuccessStatusCode)
         {
-            _message = $"Login failed: {response.StatusCode}";
+            _message = "Invalid Credentials";
             return;
         }
 
         var token = await response.Content.ReadFromJsonAsync<AuthTokenResponse>();
-        if (token is null)
-        {
-            _message = "Login response was empty.";
-            return;
-        }
+        if (token is null) return;
 
         AuthState.SignIn(_email, token.Role, token.AccessToken, token.ExpiresAt);
         Navigation.NavigateTo("/");

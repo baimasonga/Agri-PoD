@@ -9,13 +9,45 @@
 
     <nav class="nav-links">
         <NavLink class="nav-item" href="" Match="NavLinkMatch.All">Core</NavLink>
-        <NavLink class="nav-item" href="farmers">Registry</NavLink>
-        <NavLink class="nav-item" href="deliveries">PoD Ledger</NavLink>
-        <NavLink class="nav-item" href="campaigns">Operations</NavLink>
-        <NavLink class="nav-item" href="inventory">Logistics</NavLink>
-        <NavLink class="nav-item" href="compliance">Security</NavLink>
-        <NavLink class="nav-item" href="reports">Analytics</NavLink>
-        <NavLink class="nav-item" href="administration">Admin</NavLink>
+
+        @if (CanAccessRegistry)
+        {
+            <NavLink class="nav-item" href="farmers">Registry</NavLink>
+        }
+
+        @if (CanAccessDeliveries)
+        {
+            <NavLink class="nav-item" href="deliveries">PoD Ledger</NavLink>
+        }
+
+        @if (CanAccessOperations)
+        {
+            <NavLink class="nav-item" href="campaigns">Operations</NavLink>
+        }
+
+        @if (CanAccessLogistics)
+        {
+            <NavLink class="nav-item" href="inventory">Logistics</NavLink>
+            <NavLink class="nav-item" href="procurement">Supply Chain</NavLink>
+            <NavLink class="nav-item" href="fleet">Fleet</NavLink>
+        }
+
+        @if (CanAccessSecurity)
+        {
+            <NavLink class="nav-item" href="compliance">Security</NavLink>
+        }
+
+        @if (CanAccessAnalytics)
+        {
+            <NavLink class="nav-item" href="reports">Analytics</NavLink>
+            <NavLink class="nav-item" href="traceability">Integrity</NavLink>
+        }
+
+        @if (IsAdmin)
+        {
+            <NavLink class="nav-item" href="administration">Admin</NavLink>
+            <NavLink class="nav-item" href="users">Users</NavLink>
+        }
     </nav>
 
     <div style="display: flex; align-items: center; gap: 2rem;">
@@ -28,6 +60,20 @@
 </header>
 
 @code {
+    private bool IsAdmin => AuthState.Role == "SystemAdmin";
+    
+    private bool CanAccessRegistry => AuthState.Role is "SystemAdmin" or "ProjectManager" or "DistrictCoordinator" or "FieldOfficer" or "MonitoringOfficer" or "Auditor" or "Viewer";
+    
+    private bool CanAccessDeliveries => AuthState.Role is "SystemAdmin" or "ProjectManager" or "DistrictCoordinator" or "FieldOfficer" or "MonitoringOfficer" or "Auditor" or "Viewer";
+
+    private bool CanAccessOperations => AuthState.Role is "SystemAdmin" or "ProjectManager" or "DistrictCoordinator";
+
+    private bool CanAccessLogistics => AuthState.Role is "SystemAdmin" or "ProcurementOfficer" or "WarehouseManager" or "DistrictCoordinator" or "Driver" or "MonitoringOfficer";
+
+    private bool CanAccessSecurity => AuthState.Role is "SystemAdmin" or "MonitoringOfficer" or "Auditor";
+
+    private bool CanAccessAnalytics => AuthState.Role is "SystemAdmin" or "ProjectManager" or "MonitoringOfficer" or "Auditor" or "Viewer";
+
     private void SignOut()
     {
         AuthState.SignOut();
